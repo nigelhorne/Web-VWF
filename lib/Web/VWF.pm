@@ -91,9 +91,6 @@ my $tmpdir;
 # $vwflog holds the path to the CSV access log; resolved from config on first request.
 my $vwflog;
 
-# These caches are created lazily on the first request and reused across the
-# FCGI accept loop to amortise the cost of cache initialisation.
-my $info_cache;
 my $lingua_cache;
 my $buffercache;
 
@@ -628,11 +625,13 @@ sub _doit
 
 	@valid_pages = $self->_valid_pages($config) unless(@valid_pages);
 
+	# These caches are created lazily on the first request and reused across the
+	# FCGI accept loop to amortise the cost of cache initialisation.
 	# The CGI::Info disc cache stores parsed request data across FCGI restarts.
-	$info_cache ||= create_disc_cache(config => $config, logger => $logger, namespace => 'CGI::Info');
+	$self->{info_cache} ||= create_disc_cache(config => $config, logger => $logger, namespace => 'CGI::Info');
 
 	my $options = {
-		cache => $info_cache,
+		cache => $self->{info_cache},
 		logger => $logger
 	};
 
@@ -1503,6 +1502,7 @@ sub DESTROY
 	if(defined($^V) && ($^V ge 'v5.14.0')) {
 		return if ${^GLOBAL_PHASE} eq 'DESTRUCT';	# >= 5.14.0 only
 	}
+	my $self = shift;
 
 	# Clean up resources before shutdown
 	$logger->info('Shutting down') if(defined($logger));
@@ -1514,7 +1514,7 @@ sub DESTROY
 		# I don't like this hardwired code, it would be better if I could find a way to determine if a driver can run purge()
 		$rate_limit_cache->purge() if($rate_limit_cache->short_driver_name() ne 'Memcached');
 	}
-	if($info_cache) {
+	if(my $info_cache = $self->{info_cache}) {
 		$info_cache->purge();
 	}
 	if($lingua_cache) {
