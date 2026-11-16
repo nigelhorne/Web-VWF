@@ -845,11 +845,11 @@ sub _doit
 		return;
 	}
 
-	# ── Multi-layer access control ─────────────────────────────────────────
+	#  Multi-layer access control
 	# Three independent checks are run in order of cheapness:
-	#   1. CGI::ACL — cloud ranges, country blocks, explicit IP allow/deny.
-	#   2. blacklisted() — in-process IP set built from prior SQL-injection attempts.
-	#   3. Web::VWF::Allow — DShield feed, user-agent blacklist, throttler, IDS.
+	#   1. CGI::ACL - cloud ranges, country blocks, explicit IP allow/deny.
+	#   2. blacklisted() - in-process IP set built from prior SQL-injection attempts.
+	#   3. Web::VWF::Allow - DShield feed, user-agent blacklist, throttler, IDS.
 	if(my $remote_addr = $ENV{'REMOTE_ADDR'}) {
 		my $reason;
 		if($acl->all_denied(lingua => $lingua)) {
