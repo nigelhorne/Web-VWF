@@ -1205,7 +1205,11 @@ sub _valid_pages
 
 	# FIXME: Remove the hard coding
 	my $dir = File::Spec->catdir($script_dir, File::Spec->updir(), 'lib', 'Web', 'VWF', 'Display');
-	return sort(grep { $_ ne 'captcha' } map { basename($_, '.pm') } glob(File::Spec->catfile($dir, '*.pm')));
+	# The list is built first rather than returned from inside sort(): a sort
+	# that is returned directly takes the caller's context, and sort in scalar
+	# context has no defined meaning.
+	my @found = sort(grep { $_ ne 'captcha' } map { basename($_, '.pm') } glob(File::Spec->catfile($dir, '*.pm')));
+	return @found;
 }
 
 # Read the settings this site declares, once per process, and act on them: open
