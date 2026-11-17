@@ -1315,8 +1315,12 @@ sub _site_setup
 	# The site's data modules.  Each is loaded, constructed with ->new() and
 	# given to every page under the last part of its name, lower-cased:
 	# Web::VWF::Data::index arrives at a page as index, and a site's own
-	# Bands::Data::bands as bands.
-	foreach my $module ($self->_config_list($config, 'data_modules', @DEFAULT_DATA_MODULES)) {
+	# Bands::Data::bands as bands.  A name with no :: in it is one of this
+	# distribution's own, so <data_modules>index, states</data_modules> means
+	# Web::VWF::Data::index and Web::VWF::Data::states; a name that has :: is
+	# used as written, which is how a site names its own modules.
+	foreach my $entry ($self->_config_list($config, 'data_modules', @DEFAULT_DATA_MODULES)) {
+		my $module = ($entry =~ /::/) ? $entry : "Web::VWF::Data::$entry";
 		my $handle;
 		eval {
 			require_module($module);
