@@ -115,7 +115,7 @@ our $RUNNING;
 # ── What a site declares, and what it gets if it declares nothing ───────────
 # The directory its databases are in, the data modules it loads, the languages
 # it offers and the addresses it allows or trusts are all site settings, read
-# from the domain's configuration file - see "Site Settings" in Web::VWF's
+# from the domain's configuration file - see "CONFIGURATION" in Web::VWF's
 # documentation.  What is below is what this script used to hardcode, so a site
 # that says nothing behaves exactly as it did before.  The settings are resolved
 # by _site_setup() on the first request, because the configuration cannot be read
@@ -261,6 +261,302 @@ for the rest of the search order.
 A site that used to carry a renamed copy of VWF of its own deletes that copy,
 installs this distribution, renames C<VWF::> to C<Web::VWF::> in its own code,
 and moves its templates from C<.../VWF/Display/> to C<.../Web/VWF/Display/>.
+
+=head1 CONFIGURATION
+
+A site is configured by files, usually XML, in its F<conf/> directory (see
+L<Web::VWF::Config> for where they are looked for, in which order, and how an
+environment variable of the same name as a top-level key overrides that key).
+The file named F<default> is read first, then one named for the site's domain
+name, then C<$CONFIG_FILE>.  F<example/conf/default> is a complete working
+example.
+
+Every setting is optional.  What a site does not say gets the default given
+below, which is what the framework did before the setting existed.
+
+=head2 Environment variables
+
+=over 4
+
+=item C<CONFIG_DIR>
+
+The one directory configuration is read from.  When it is set nothing else is
+searched.  It must exist.
+
+=item C<CONFIG_FILE>
+
+An extra configuration file, read after C<default> and the domain's file.
+
+=item C<root_dir>
+
+The site's own directory: where the templates are.  It also overrides the C<root_dir> of every cache driver,
+and the one in the configuration.  The server's directory of sites, for a
+server that has one directory for each, is the C<directory> argument of
+L</new> and defaults to this variable and then to F</usr/lib/vwf>.
+
+=item C<CACHEDIR>, C<CACHE_DIR>
+
+Where the file-based caches (C<File> and C<BerkeleyDB>) are kept, so that they
+need not be inside the site: C<CACHEDIR> is used if it is set and not empty,
+else C<CACHE_DIR>.  Either beats C<root_dir> above, and the directory is
+created if it does not exist.
+
+=back
+
+=head2 Pages: C<display>
+
+	<display>
+		<directory>/path/to/modules</directory>
+		<page>
+			<name>states</name>
+			<description>Displays information about the U.S. states</description>
+			<directory>/path/to/this/page</directory>
+		</page>
+	</display>
+
+One C<page> for each page that C<?page=> may name.  The C<name> is required and
+may only be word characters.  The C<description> is shown in the C<300 Multiple
+Choices> response, which lists the pages when no C<page> is given.  A page is
+the class C<Web::VWF::Display::E<lt>nameE<gt>> and its template.
+
+C<directory> says where the page modules are.  In C<display> it is the default
+for all of them, in a C<page> it is that page's alone and wins.  It is where the
+F<E<lt>nameE<gt>.pm> file is, not a directory of templates.  A relative one is
+taken from the directory the page script is in.  A page with no directory at
+all is found in C<@INC>.
+
+With no C<page> at all, C<display>'s C<directory> is searched and every F<.pm>
+in it, except F<captcha.pm>, is a page.  With no C<display> either, that is
+F<../lib/Web/VWF/Display> beside the script.
+
+The old C<pages> is read when there is no C<display>, as is its old form of one
+string of names, C<< <pages>index, meta_data</pages> >>.
+
+=head2 Data: C<databases>
+
+	<databases>
+		<directory>/path/to/modules</directory>
+		<database>
+			<name>states</name>
+			<description>List of data about the U.S. states</description>
+			<directory>/path/to/this/module</directory>
+		</database>
+	</databases>
+
+One C<database> for each data module a page may use.  A page is given each as
+a variable named for the last part of its class, lower-cased: the module
+C<Web::VWF::Data::states> is C<$states> in the page.  A C<name> with no C<::> in it is
+a C<Web::VWF::Data::> module; one with C<::>, such as C<Bands::Data::bands>, is
+used as written.  The C<description> is only logged.
+
+C<directory> is where the module's F<.pm> file is, in the same way as for
+C<display>, named for the last part of the class.  It is not where the
+database's own files are: that is C<database_dir>.
+
+What is loaded, in order of preference:
+
+=over 4
+
+=item 1. the C<database> elements;
+
+=item 2. the old C<data_modules>, one string of names, C<index, states> (an empty
+one means none);
+
+=item 3. with only a C<databases> C<directory>, every F<.pm> in it;
+
+=item 4. the default, C<Web::VWF::Data::index>.
+
+=back
+
+A module that cannot be loaded is logged and skipped; the pages that do not
+need it still work.
+
+This is not called C<data> because the data modules are given the configuration's top-level
+keys as their constructor arguments, and a key called C<data> replaces the rows
+of every database.
+
+=head2 Other settings
+
+=over 4
+
+=item C<database_dir>
+
+The directory of the database files (CSV, XML, SQLite) read by the data
+modules.  Default: F<../data> beside the script.  Pages are told it as
+C<database_dir> and C<databasedir>.
+
+=item C<supported_languages>
+
+The languages the site has templates for.  Default: C<en-gb>.
+
+=item C<allow_ips>
+
+Addresses always allowed through the access control.  Default: C<108.44.193.70>
+and C<127.0.0.1>; a site should set its own.  It is not called C<allowed_ips>,
+which would be taken as a constructor argument by L<CGI::ACL>.
+
+=item C<rate_limit_trusted_ips>
+
+Addresses never rate limited.  Default: C<127.0.0.1> and C<192.168.1.1>.
+
+=item C<blacklist_countries>
+
+Two-letter country codes to refuse.  Default: C<BY MD RU CN BR UY TR MA VE SA
+CY CO MX IN RS PK UA XH>.  Setting it replaces the list.
+
+=item C<vwflog>
+
+The path of the access log, a CSV file that the C<meta_data> page reads.
+Default: F<vwf.log> in the log directory L<CGI::Info> chooses.
+
+=item C<root_dir>
+
+The site's own directory, as the environment variable of the same name, which
+wins.  When it is set, the output of pages other than the home page and mail
+sending is also saved, for a day, in F<save_to> inside it, by L<FCGI::Buffer>.
+
+=item C<twitter>
+
+A Twitter handle, which gives the pages a tweet button.
+
+=item C<SiteTitle>, C<contact>, and any other key
+
+All of the configuration is available to the templates, so a site may put its
+own settings in it.  C<SiteTitle> and C<contact> in the example are only
+that.
+
+=item C<syslog>
+
+Passed to L<CGI::Info> to log to syslog.  C<server> is accepted for C<host>.
+
+=item C<DKIMSelector>, C<DKIMKey>
+
+The selector and the private key file with which the mail the contact page
+sends is signed.  Without both it is sent unsigned.  See L<Web::VWF::Mail>.
+
+=back
+
+List-valued settings (C<supported_languages>, C<allow_ips>,
+C<rate_limit_trusted_ips>, C<blacklist_countries>) may be written as one string
+separated by commas or spaces, or as an element with one child for each value.
+
+=head2 C<recaptcha>
+
+	<recaptcha>
+		<enabled>1</enabled>
+		<site_key>...</site_key>
+		<secret_key>...</secret_key>
+	</recaptcha>
+
+Google reCAPTCHA, from L<https://www.google.com/recaptcha/admin>.  When it is
+enabled a client past the soft rate limit is shown a challenge instead of
+being refused.  When it is not, the hard limit refuses with a plain-text C<429>.
+
+=head2 C<security>
+
+=over 4
+
+=item C<security.rate_limiting.max_requests>
+
+Requests from one address in the C<time_window> after which the CAPTCHA is
+shown.  Default: 100.
+
+=item C<security.rate_limiting.max_requests_hard>
+
+After which the request is refused.  Default: one and a half times
+C<max_requests>.
+
+=item C<security.rate_limiting.time_window>
+
+A duration such as C<60s> or C<5 minutes>.  Default: C<60s>.
+
+=item C<security.rate_limiting.captcha_bypass_duration>
+
+How long a solved CAPTCHA exempts the client from the limit.  Default: C<300s>.
+
+=item C<security.ids_threshold>
+
+The L<CGI::IDS> impact above which a request is treated as an attack.
+Default: 50.
+
+=item C<security.csrf.enable>
+
+Set to C<0> to turn off the CSRF cookie that pages with a form are given.
+Default: 1.
+
+=item C<security.csrf.secret>
+
+The secret the CSRF tokens are signed with.  Without one a random secret is
+made for each process and the tokens do not outlive it.  See
+L<Web::VWF::Display>.
+
+=back
+
+=head2 C<throttle>
+
+The per-address throttle used by L<Web::VWF::Allow> and by
+L<Web::VWF::Display>, which share one file.
+
+=over 4
+
+=item C<throttle.max_items>
+
+Requests allowed in the interval.  Default: 30.
+
+=item C<throttle.interval>
+
+The interval, in seconds.  Default: 90.
+
+=item C<throttle.file>
+
+The file the counts are kept in.  Default: F<throttle> in the temporary
+directory.
+
+=back
+
+=head2 Caches: C<disc_cache> and C<memory_cache>
+
+	<disc_cache>
+		<driver>File</driver>
+		<root_dir>/var/tmp/cache</root_dir>
+	</disc_cache>
+
+The L<CHI> caches.  C<driver> is one of C<Memory>, C<BerkeleyDB>, C<DBI>,
+C<Redis>, C<Memcached>, C<SharedMem>, C<File> or C<Null>.  Default for
+C<disc_cache>: C<BerkeleyDB>, or C<File> where that is not installed; for
+C<memory_cache>: C<Memory>.  The other keys depend on the driver:
+
+=over 4
+
+=item C<root_dir>
+
+For C<File> and C<BerkeleyDB>.  Overridden by C<$CACHEDIR>, C<$CACHE_DIR> and
+C<$root_dir>, in that order.  It must exist and be writable unless one of the
+environment variables made it.
+
+=item C<server> (or C<host>) and C<port>
+
+For C<Memcached>: C<host:port> pairs separated by commas, or a host with the
+port in C<port>.  Default: C<127.0.0.1:11211>.
+
+=item C<connect>, C<create_table>
+
+For C<DBI>: the DSN, which is required, and whether to create the table
+(default: yes).
+
+=item C<reconnect>, C<every>, C<encoding>, C<redis_options>
+
+For C<Redis>, which also takes C<server> (or C<host>) and C<port> as above.
+
+=item C<shm_key>, C<shm_size>, C<max_size>
+
+For C<SharedMem>; C<shm_key> is required.
+
+=item C<global>, C<datastore>
+
+For C<Memory>; not both.
+
+=back
 
 =head1 SUBROUTINES/METHODS
 

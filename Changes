@@ -2,6 +2,8 @@ Revision history for Web-VWF
 
 0.003.0
 	[ Enhancements ]
+	- Documented every site setting: a new CONFIGURATION section in the Web::VWF
+	POD and the README, with the defaults.
 	- <display><directory> overrides the directory searched for page modules when no
 	<page> is listed, and the page modules are loaded from it; a <directory> in a
 	<page> says where that page's module is and beats the one in <display>.  A page
