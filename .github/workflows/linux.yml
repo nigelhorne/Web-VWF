@@ -54,7 +54,7 @@ jobs:
           # Makefile.PL's TEST_REQUIRES, which the manual list above does not
           # read.  Without Test::Returns, t/function.t dies on its own use line
           # before it runs a single test.
-          cpanm --skip-satisfied -qn Test::Returns Test::Memory::Cycle HTTP::Response File::Copy::Recursive YAML Test::Pod Test::Pod::Coverage
+          cpanm --skip-satisfied -qn Test::Returns Test::Memory::Cycle HTTP::Response File::Copy::Recursive YAML Test::Needs Test::Pod Test::Pod::Coverage
       - name: Run Tests
         run: |
           # The whole suite, so a test added later is covered here without

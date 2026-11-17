@@ -1,4 +1,5 @@
 Changes
+LICENSE
 cpanfile
 example/cgi-bin/page.fcgi
 example/conf/default
@@ -36,6 +37,7 @@ t/mail.t
 t/meta-data-charts.t
 t/pages-config.t
 t/data-config.t
+t/pod-coverage.t
 t/pod.t
 t/redact.t
 t/version.t

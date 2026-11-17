@@ -16,11 +16,11 @@ Provides cross-driver cache initialization and Haversine formula implementation.
 
 =head1 VERSION
 
-Version 0.002.0
+Version 0.003.0
 
 =cut
 
-use version; our $VERSION = version->declare('0.002.0');
+use version; our $VERSION = version->declare('0.003.0');
 
 use v5.20;
 use strict;
@@ -366,6 +366,29 @@ sub _configure_memcached($chi_args, $config, $args, $logger) {
 	}
 }
 
+=head2 env_cache_dir
+
+The directory that the environment says the caches are to be kept in: the value
+of C<$CACHEDIR> or, if that is unset or empty, of C<$CACHE_DIR>.  Returns undef
+when neither is set.  File-based cache drivers use it in preference to
+C<root_dir>, which lets an administrator keep the caches outside the site; it is
+created if it does not exist.  It is exported on request.
+
+	use Web::VWF::Utils qw(env_cache_dir);
+	my $dir = env_cache_dir();
+
+=head3 API SPECIFICATION
+
+=head4 INPUT
+
+	{}
+
+=head4 OUTPUT
+
+	{ type => 'string', optional => 1 }
+
+=cut
+
 # Where the environment says the caches go: $CACHEDIR, or failing that
 # $CACHE_DIR, so that an administrator can put them somewhere better than the
 # site's own directory without editing any configuration.  Undef when neither
@@ -540,7 +563,7 @@ Please report any bugs or feature requests to the author.
 
 You can find documentation for this module with the perldoc command.
 
-    perldoc VWF::Utils
+    perldoc Web::VWF::Utils
 
 =head1 LICENSE AND COPYRIGHT
 

@@ -4,7 +4,18 @@ Web::VWF - Versatile Web Framework - easily build a website to support different
 
 ## Version
 
-Version 0.002.0
+Version 0.003.0
+
+## Synopsis
+
+A site's page script, `cgi-bin/page.fcgi`, is all of this:
+
+```perl
+    use FindBin;
+    use Web::VWF;
+
+    Web::VWF->new({ directory => "$FindBin::Bin/../conf" })->run();
+```
 
 ## Description
 
@@ -387,6 +398,39 @@ handed to [Web::VWF::Config](https://metacpan.org/pod/Web%3A%3AVWF%3A%3AConfig),
 
 ```perl
     { type => 'object', isa => 'Web::VWF' }
+```
+
+### Run
+
+Serve requests.  It accepts FastCGI requests one after another and sends each
+one to the page named by `?page=`, as described in ["DESCRIPTION"](#description); an error in
+one request is logged and does not end the worker.
+
+The loop ends, and `run` returns, when the web server asks the worker to exit,
+after a TERM or USR1 signal, or when the page script has been changed since the
+worker started, so that the next request starts a worker with the new code.
+
+When `REMOTE_ADDR` is not set, which is how the script is run from a command
+line, there is no web server: `run` handles one request, built from the
+command-line arguments such as `page=index`, turns caching off, takes the
+language from `LANG` and prints debug logging to STDOUT among the response.
+
+`run` refuses to run again from inside itself, and to run while the script is
+still being compiled, which happens when something reads the page script as if
+it were a configuration file.  It prints a message on STDERR and returns.
+
+#### Api Specification
+
+##### Input
+
+```
+    {}
+```
+
+##### Output
+
+```perl
+    { type => 'undef' }
 ```
 
 ### \_Directory

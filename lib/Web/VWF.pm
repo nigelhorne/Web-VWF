@@ -6,7 +6,7 @@ use strict;
 use warnings;
 # use diagnostics;
 
-use version; our $VERSION = version->declare('0.002.0');
+use version; our $VERSION = version->declare('0.003.0');
 
 # TODO: Try Log::Any::Adapter::Abstraction instead of Log::Any
 
@@ -112,7 +112,7 @@ our $RUNNING;
 # use Web::VWF::Display::editor;
 # use Web::VWF::Display::meta_data;
 
-# ── What a site declares, and what it gets if it declares nothing ───────────
+# -- What a site declares, and what it gets if it declares nothing -----------
 # The directory its databases are in, the data modules it loads, the languages
 # it offers and the addresses it allows or trusts are all site settings, read
 # from the domain's configuration file - see "CONFIGURATION" in Web::VWF's
@@ -189,7 +189,16 @@ Web::VWF - Versatile Web Framework - easily build a website to support different
 
 =head1 VERSION
 
-Version 0.002.0
+Version 0.003.0
+
+=head1 SYNOPSIS
+
+A site's page script, F<cgi-bin/page.fcgi>, is all of this:
+
+	use FindBin;
+	use Web::VWF;
+
+	Web::VWF->new({ directory => "$FindBin::Bin/../conf" })->run();
 
 =head1 DESCRIPTION
 
@@ -617,6 +626,37 @@ sub new
 	}, $class;
 }
 
+=head2 run
+
+Serve requests.  It accepts FastCGI requests one after another and sends each
+one to the page named by C<?page=>, as described in L</DESCRIPTION>; an error in
+one request is logged and does not end the worker.
+
+The loop ends, and C<run> returns, when the web server asks the worker to exit,
+after a TERM or USR1 signal, or when the page script has been changed since the
+worker started, so that the next request starts a worker with the new code.
+
+When C<REMOTE_ADDR> is not set, which is how the script is run from a command
+line, there is no web server: C<run> handles one request, built from the
+command-line arguments such as C<page=index>, turns caching off, takes the
+language from C<LANG> and prints debug logging to STDOUT among the response.
+
+C<run> refuses to run again from inside itself, and to run while the script is
+still being compiled, which happens when something reads the page script as if
+it were a configuration file.  It prints a message on STDERR and returns.
+
+=head3 API SPECIFICATION
+
+=head4 INPUT
+
+	{}
+
+=head4 OUTPUT
+
+	{ type => 'undef' }
+
+=cut
+
 =head2 _directory
 
 Internal: not part of the public interface.  The directory the server keeps this site's configuration in: what C<new()> was
@@ -793,7 +833,7 @@ sub run
 	# my $request = FCGI::Request($stdin, $stdout, $stderr);
 	my $request = FCGI::Request();
 
-	# ─── Main FCGI request loop ───────────────────────────────────────────────────
+	# --- Main FCGI request loop ---------------------------------------------------
 	# Accept() blocks until the web server sends a new request.  It returns a
 	# negative value when the server wants this worker to exit (e.g. graceful
 	# shutdown), which breaks the loop naturally.
@@ -841,7 +881,7 @@ sub run
 			last;	# command-line mode is single-shot; exit the accept loop
 		}
 
-		# ── Live HTTP request ──────────────────────────────────────────────────
+		# -- Live HTTP request --------------------------------------------------
 		$requestcount++;
 		$logger->info("Request $requestcount: ", $ENV{'REMOTE_ADDR'});
 
@@ -879,7 +919,7 @@ sub run
 	}
 }
 
-# ─── doit() — per-request handler ────────────────────────────────────────────
+# --- doit() - per-request handler --------------------------------------------
 # Called once per FCGI iteration.  Handles security checks, language detection,
 # template dispatch, response caching, and access logging.
 sub _doit
@@ -1132,7 +1172,7 @@ sub _doit
 					if($error) {
 						$logger->error($error);
 					} else {
-                                                $logger->error("Unable to show captcha page - request count = $request_count");
+						$logger->error("Unable to show captcha page - request count = $request_count");
 					}
 					$self->_vwflog($vwflog, $info, $lingua, $syslog, 'Soft rate limit - CAPTCHA not shown', $log, $request_start);
 				}
@@ -1192,7 +1232,7 @@ sub _doit
 		}
 	}
 
-	# ── FCGI::Buffer setup ────────────────────────────────────────────────
+	# -- FCGI::Buffer setup ------------------------------------------------
 	# FCGI::Buffer post-processes the output: compresses it, generates an ETag
 	# and Last-Modified header, and serves a 304 Not Modified when appropriate.
 	my $args = {
@@ -1267,7 +1307,7 @@ sub _doit
 		log => $log
 	};
 
-	# ── Page dispatch ──────────────────────────────────────────────────────
+	# -- Page dispatch ------------------------------------------------------
 	# The outer block eval catches any exception thrown during module loading
 	# or display-object construction, setting $@ for inspection below.
 	eval {
@@ -1453,7 +1493,7 @@ sub choose
 
 	print "\n";
 
-	# RFC 7231 §4.3.2: a HEAD response must not include a body.
+	# RFC 7231 section 4.3.2: a HEAD response must not include a body.
 	unless($ENV{'REQUEST_METHOD'} && ($ENV{'REQUEST_METHOD'} eq 'HEAD')) {
 		# The same list that doit() allows, so the two cannot differ
 		print map {
@@ -1480,7 +1520,7 @@ sub send_error
 		"Content-type: text/plain\n",
 		"Pragma: no-cache\n\n";
 
-	# RFC 9110 §9.3.2: a HEAD response must not include a body.
+	# RFC 9110 section 9.3.2: a HEAD response must not include a body.
 	my $is_head = $ENV{'REQUEST_METHOD'} && ($ENV{'REQUEST_METHOD'} eq 'HEAD');
 	print $args{'body'} if(defined($args{'body'}) && !$is_head);
 
@@ -1882,7 +1922,7 @@ sub filter
 }
 
 # Escape a single value for safe inclusion in a double-quoted CSV field.
-# Follows RFC 4180 §2.7 and additionally neutralises spreadsheet formulas.
+# Follows RFC 4180 section 2.7 and additionally neutralises spreadsheet formulas.
 sub _csv_escape
 {
 	my $v = shift // '';
@@ -1953,7 +1993,7 @@ sub _vwflog
 	# Open the log in append mode.  If the open fails we skip logging silently
 	# so that a disk-full or permissions error does not crash the live request.
 	if(open(my $fout, '>>', $vwflog)) {
-		# SECURITY — CSV injection defence:
+		# SECURITY - CSV injection defence:
 		#   Every user-visible field is passed through _csv_escape so that
 		#   embedded double-quotes cannot break the CSV column structure, and
 		#   leading formula characters cannot trigger code execution when the

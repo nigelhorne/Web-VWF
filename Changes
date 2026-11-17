@@ -2,37 +2,32 @@ Revision history for Web-VWF
 
 0.003.0
 	[ Enhancements ]
-	- Documented every site setting: a new CONFIGURATION section in the Web::VWF
-	POD and the README, with the defaults.
-	- <display><directory> overrides the directory searched for page modules when no
-	<page> is listed, and the page modules are loaded from it; a <directory> in a
-	<page> says where that page's module is and beats the one in <display>.  A page
-	with neither is found in @INC and the default is unchanged
-	(../lib/Web/VWF/Display).
+	- The pages a site serves are declared in <display>, one <page> element for
+	each, with a <name> and a <description> (shown in the 300 response).  A
+	<directory> in <display> or in a <page> says where the page modules are, instead
+	of @INC; with no <page>, the modules found in the <display> directory are the
+	pages.  The old <pages> setting, and its string of names, is still read.
+	- The data modules a site loads are declared in <databases>, one <database>
+	element for each, with a <name>, a <description> and a <directory> likewise.
+	A name with no :: in it is a Web::VWF::Data:: module, so <name>states</name> is
+	Web::VWF::Data::states.  The old <data_modules> string is still read.  (It is
+	not called <data> because Database::Abstraction takes constructor arguments
+	from top-level configuration keys, and data is one of them.)
 	- File-based caches (Berkeley DB, File) now go in $CACHEDIR, or failing that
 	$CACHE_DIR, when either is set, ahead of $root_dir and the configuration; the
 	directory is created if it does not exist.  Previously root_dir=example put
 	CGI+3a+3aLingua, __db.* and the rest inside example/.
-	- A data_modules entry with no :: in it is taken to be in Web::VWF::Data::, so
-	<data_modules>index, states</data_modules> works; a full module name is still
-	used as written.
-	- The pages setting is renamed <display>, after the Web::VWF::Display
-	directory.  The old <pages> is still read when there is no <display>.
-	- The setting is now one <page> element for each page, with a <name>
-	and a <description>; the description is shown in the 300 response.  The old
-	string of names is still read.  example/conf/default uses the new form.
-	- The data_modules setting is replaced by <databases>, one <database> element for
-	each data module, with a <name>, a <description> and optionally a <directory>
-	(where that module's .pm file is, instead of @INC); a <directory> in <databases>
-	is the default for them all and, with no <database>, the directory whose
-	modules are all loaded.  A name with no :: is a Web::VWF::Data:: module, as
-	before.  The old <data_modules> string is still read.
-	- The example site has data for the index page: example/data/index.csv, the
-	people the contact form can reach (! separated, as Web::VWF::Data::index reads it).
-	- The example site has a states page (?page=states): a sample CSV database,
-	example/data/states.csv (the 50 U.S. states), read through the new
-	Web::VWF::Data::states and shown by Web::VWF::Display::states and the
-	states.tmpl template.
+	- The example site has a states page (?page=states), reading
+	example/data/states.csv (the 50 U.S. states) through Web::VWF::Data::states,
+	Web::VWF::Display::states and states.tmpl, which are in example/lib; and
+	example/data/index.csv, the people the contact form can reach.
+	- Documented every site setting: a new CONFIGURATION section in the Web::VWF
+	POD and the README, with the defaults.  Added the SYNOPSIS and run() to the
+	POD, POD for every module, Web::VWF::Utils::env_cache_dir, an AUTHOR and a
+	LICENCE section for each, and a LICENSE file.
+	- t/pod-coverage.t (an author test) checks that every public subroutine is
+	documented, and t/version.t no longer skips a Changes entry that has no date
+	yet, and checks the example site's modules too.
 	[ Bug Fixes ]
 	- Require HTML::D3 0.30.  CPAN Testers (Perl 5.44, aarch64 Linux) had 0.23 and
 	the meta_data page, t/function.t and t/meta-data-charts.t died with "Data must
@@ -41,6 +36,13 @@ Revision history for Web-VWF
 	Makefile.PL, cpanfile and linux.yml, and meta_data checks it on load.
 	Fixes https://matrix.perl-magpie.org/results/ffb3469e-de40-11f1-a09d-aafb97416a10
 	- Handle captcha display failure
+	- The POD of Blacklist, Utils and Config still used the old VWF:: names, so
+	its SYNOPSIS did not load.
+	- Data::Throttler::Backend::VWF, which Web::VWF::Throttle defines in another
+	distribution's namespace, is no longer offered to PAUSE (no_index).
+	- Declared Test::Needs, which t/pod.t uses, and recommend Mail::DKIM and
+	Crypt::OpenSSL::RSA for the tests that sign a message.
+	- ASCII only in the source of Web::VWF; one line indented with spaces now uses tabs.
 
 0.002.0	Wed Nov 11 08:54:17 PM EST 2026
 	[ Enhancements ]

@@ -79,12 +79,15 @@ on 'test' => sub {
 	requires 'Test::Memory::Cycle';
 	requires 'Test::Mockingbird';
 	requires 'Test::Most';
+	requires 'Test::Needs';   # t/pod.t, t/pod-coverage.t
 	requires 'Test::Returns';
+	recommends 'Crypt::OpenSSL::RSA';
+	recommends 'Mail::DKIM';
 };
 
 on 'develop' => sub {
 	requires 'Devel::Cover';
 	requires 'Perl::Critic';
-	requires 'Test::Pod';
-	requires 'Test::Pod::Coverage';
+	requires 'Test::Pod', '1.22';
+	requires 'Test::Pod::Coverage', '1.04';
 };

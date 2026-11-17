@@ -7,7 +7,7 @@ package Web::VWF::Display::states;
 use strict;
 use warnings;
 
-use version; our $VERSION = version->declare('0.002.0');
+use version; our $VERSION = version->declare('0.003.0');
 
 use Carp;
 use Web::VWF::Display;
@@ -30,3 +30,49 @@ sub html {
 }
 
 1;
+
+=encoding utf8
+
+=head1 NAME
+
+Web::VWF::Display::states - The example site's page of U.S. states
+
+=head1 VERSION
+
+Version 0.003.0
+
+=head1 DESCRIPTION
+
+Shows every row of the C<states> database (see L<Web::VWF::Data::states>) as a
+table, sorted by name, in F<states.tmpl>.  Reached as C<?page=states>.
+
+=head1 METHODS
+
+=head2 html
+
+Needs the C<states> data handle, which L<Web::VWF> passes to every page, and
+croaks without it.
+
+=head3 API SPECIFICATION
+
+=head4 INPUT
+
+	{ states => { type => 'object' } }
+
+=head4 OUTPUT
+
+	{ type => 'string' }
+
+=head1 AUTHOR
+
+Nigel Horne, C<< <njh at nigelhorne.com> >>
+
+=head1 LICENCE AND COPYRIGHT
+
+Copyright 2010-2026 Nigel Horne.
+
+Usage is subject to the GPL2 licence terms.
+If you use it,
+please let me know.
+
+=cut

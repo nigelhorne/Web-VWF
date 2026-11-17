@@ -99,12 +99,27 @@ WriteMakefile(
 		'Test::Memory::Cycle' => 0,
 		'Test::Mockingbird' => 0,
 		'Test::Most' => 0,
+		'Test::Needs' => 0,		# t/pod.t, t/pod-coverage.t
 		'Test::Returns' => 0,
 	}, dist => $dist,
 	clean => { FILES => 'Web-VWF-*' },
 	META_MERGE => {
 		'meta-spec' => { version => 2 },
 		prereqs => {
+			test => {
+				recommends => {
+					# t/mail.t signs a message for real when both are installed,
+					# and skips that part when they are not.
+					'Crypt::OpenSSL::RSA' => 0,
+					'Mail::DKIM' => 0,
+				},
+			},
+			develop => {
+				requires => {
+					'Test::Pod' => '1.22',
+					'Test::Pod::Coverage' => '1.04',
+				},
+			},
 			runtime => {
 				recommends => {
 					# Web::VWF::Mail signs with DKIM when a site configures a key,
@@ -118,7 +133,13 @@ WriteMakefile(
 			},
 		},
 		# example/ is a site to copy, not code to index.
-		no_index => { directory => ['example', 't'] },
+		no_index => {
+			directory => ['example', 't'],
+			# Web::VWF::Throttle also defines this backend for Data::Throttler.
+			# It lives in that distribution's namespace, which this one does not
+			# own, so it must not be offered to PAUSE as ours.
+			package => ['Data::Throttler::Backend::VWF'],
+		},
 		resources => {
 			repository => {
 				type => 'git',
