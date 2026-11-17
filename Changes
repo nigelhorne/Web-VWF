@@ -2,6 +2,10 @@ Revision history for Web-VWF
 
 0.003.0
 	[ Enhancements ]
+	- File-based caches (Berkeley DB, File) now go in $CACHEDIR, or failing that
+	$CACHE_DIR, when either is set, ahead of $root_dir and the configuration; the
+	directory is created if it does not exist.  Previously root_dir=example put
+	CGI+3a+3aLingua, __db.* and the rest inside example/.
 	- A data_modules entry with no :: in it is taken to be in Web::VWF::Data::, so
 	<data_modules>index, states</data_modules> works; a full module name is still
 	used as written.

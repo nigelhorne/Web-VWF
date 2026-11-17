@@ -756,7 +756,7 @@ sub _doit
 		syslog => $syslog,
 	});
 
-	my $cachedir = $params{'cachedir'} || $config->{disc_cache}->{root_dir} || File::Spec->catfile($tmpdir, 'cache');
+	my $cachedir = Web::VWF::Utils::env_cache_dir() || $params{'cachedir'} || $config->{disc_cache}->{root_dir} || File::Spec->catfile($tmpdir, 'cache');
 
 	# Rate limit by IP (unless bypassed)
 	unless($has_captcha_bypass || grep { $_ eq $client_ip } @rate_limit_trusted_ips) {
