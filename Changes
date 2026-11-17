@@ -27,7 +27,8 @@ Revision history for Web-VWF
 	LICENCE section for each, and a LICENSE file.
 	- t/pod-coverage.t (an author test) checks that every public subroutine is
 	documented, and t/version.t no longer skips a Changes entry that has no date
-	yet, and checks the example site's modules too.
+	yet when checking its version (the date is required under RELEASE_TESTING),
+	and checks the example site's modules too.
 	[ Bug Fixes ]
 	- Require HTML::D3 0.30.  CPAN Testers (Perl 5.44, aarch64 Linux) had 0.23 and
 	the meta_data page, t/function.t and t/meta-data-charts.t died with "Data must

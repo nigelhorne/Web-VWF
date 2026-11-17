@@ -47,13 +47,19 @@ foreach my $file (@modules) {
 }
 
 # The first version line, whether or not it has a date: an entry that has not
-# been dated yet is the one about to be released, and must not be skipped in
-# favour of the previous release's, which would make this test pass at the one
-# moment it matters.
+# been dated yet is the one about to be released, and its version must still be
+# the current one - skipping it in favour of the previous release's entry would
+# make this test pass at the one moment it matters.  The date is put in when the
+# release is made, so it is only required when RELEASE_TESTING says that is now.
 my $changes = slurp(File::Spec->catfile($root, 'Changes'));
 if($changes =~ /^(\d+\.\d+\.\d+)(?:\t(\S.*))?$/m) {
-	is($1, $version, 'the topmost Changes entry is the current version');
-	like($2 // '', qr/\b20\d\d\b/, 'and it has a date');
+	my ($top_version, $top_date) = ($1, $2);
+	is($top_version, $version, 'the topmost Changes entry is the current version');
+	SKIP: {
+		skip 'the date is added when the release is made; set RELEASE_TESTING to require it', 1
+			unless($ENV{'RELEASE_TESTING'} || defined($top_date));
+		like($top_date // '', qr/\b20\d\d\b/, 'and it has a date');
+	}
 } else {
 	fail('Changes has a top entry with a version');
 }
