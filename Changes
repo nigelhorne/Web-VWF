@@ -1,6 +1,6 @@
 Revision history for Web-VWF
 
-0.003.0
+0.003.0	Tue Nov 17 12:05:14 PM EST 2026
 	[ Enhancements ]
 	- The pages a site serves are declared in <display>, one <page> element for
 	each, with a <name> and a <description> (shown in the 300 response).  A
