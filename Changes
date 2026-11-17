@@ -2,9 +2,9 @@ Revision history for Web-VWF
 
 0.003.0
 	[ Enhancements ]
-	- <pages><directory> overrides the directory searched for page modules when no
+	- <display><directory> overrides the directory searched for page modules when no
 	<page> is listed, and the page modules are loaded from it; a <directory> in a
-	<page> says where that page's module is and beats the one in <pages>.  A page
+	<page> says where that page's module is and beats the one in <display>.  A page
 	with neither is found in @INC and the default is unchanged
 	(../lib/Web/VWF/Display).
 	- File-based caches (Berkeley DB, File) now go in $CACHEDIR, or failing that
@@ -14,7 +14,9 @@ Revision history for Web-VWF
 	- A data_modules entry with no :: in it is taken to be in Web::VWF::Data::, so
 	<data_modules>index, states</data_modules> works; a full module name is still
 	used as written.
-	- The pages setting is now one <page> element for each page, with a <name>
+	- The pages setting is renamed <display>, after the Web::VWF::Display
+	directory.  The old <pages> is still read when there is no <display>.
+	- The setting is now one <page> element for each page, with a <name>
 	and a <description>; the description is shown in the 300 response.  The old
 	string of names is still read.  example/conf/default uses the new form.
 	- The example site has a states page (?page=states): a sample CSV database,

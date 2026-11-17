@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <config>
-	<pages>
+	<display>
 		<!--
 			Without any <page> elements, the page modules found in <directory>
 			are the valid pages (default: ../lib/Web/VWF/Display beside cgi-bin).
@@ -20,7 +20,7 @@
 			<name>states</name>
 			<description>Displays information about the U.S. states</description>
 		</page>
-	</pages>
+	</display>
 	<data_modules>index, states</data_modules>
 	<memory_cache>
 		<driver>Null</driver>

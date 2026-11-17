@@ -162,7 +162,7 @@ my @valid_pages;
 my %page_description;
 
 # Where a page's module is, for the pages that have a <directory> of their own
-# or inherit <pages><directory>; any other page's module is found in @INC.
+# or inherit <display><directory>; any other page's module is found in @INC.
 my %page_directory;
 
 # FastCGI signal handling: the FCGI process lives across many requests so we
@@ -1224,15 +1224,25 @@ sub _config_list
 	return grep { defined($_) && length($_) && !$seen{$_}++ } @values;
 }
 
+# The <display> setting, named after the Web::VWF::Display directory the pages
+# live in.  A site written before the rename used <pages>, which is still read
+# when there is no <display>.
+sub _display_setting
+{
+	my $config = shift;
+
+	return $config->{'display'} // $config->{'pages'};
+}
+
 # The pages the site's configuration file declares, as a list of
 # { name => ..., description => ... } in the order they were written:
-#	<pages>
+#	<display>
 #		<page><name>states</name><description>About the U.S. states</description></page>
 #		<directory>/path/to/pages</directory>
-#	</pages>
-# A <directory> in <pages> is where the page modules are looked for, and the
+#	</display>
+# A <directory> in <display> is where the page modules are looked for, and the
 # list of pages when there are no <page>s (see _valid_pages); one in a <page>
-# is where that page's module is, and beats the one in <pages>.  One <page> is read as a hash and several as an array, so both are handled.
+# is where that page's module is, and beats the one in <display>.  One <page> is read as a hash and several as an array, so both are handled.
 # The old form, a single string of names (<pages>index, meta_data</pages>), is
 # still read, with no descriptions, so existing sites keep working.  A page
 # without a usable name is dropped, and so is a repeated one, since the same
@@ -1241,7 +1251,7 @@ sub _config_pages
 {
 	my (undef, $config) = @_;
 
-	my $pages = $config->{'pages'};
+	my $pages = _display_setting($config);
 	return unless(defined($pages));
 
 	my @entries;
@@ -1273,7 +1283,7 @@ sub _config_pages
 # The pages that ?page= may load.  Sites declare them in the config file (see
 # _config_pages); otherwise every *.pm in the page directory is allowed, except
 # captcha, which only the rate limiter shows.  The page directory is
-# <pages><directory>, or ../lib/Web/VWF/Display next to this script.
+# <display><directory>, or ../lib/Web/VWF/Display next to this script.
 sub _valid_pages
 {
 	my $self = shift;
@@ -1282,7 +1292,7 @@ sub _valid_pages
 	my @pages = map { $_->{'name'} } $self->_config_pages($config);
 	return grep { /\A\w+\z/ } @pages if(@pages);
 
-	# <pages><directory> overrides where the page modules are looked for.
+	# <display><directory> overrides where the page modules are looked for.
 	# Only the default has the framework's own hard-coded layout.
 	my $dir = $self->_pages_directory($config);
 	unless(defined($dir)) {
@@ -1308,17 +1318,18 @@ sub _resolve_directory
 	return File::Spec->file_name_is_absolute($directory) ? $directory : File::Spec->catdir($script_dir, $directory);
 }
 
-# <pages><directory>, resolved, or undef
+# <display><directory>, resolved, or undef
 sub _pages_directory
 {
 	my (undef, $config) = @_;
 
-	return unless(ref($config->{'pages'}) eq 'HASH');
-	return _resolve_directory($config->{'pages'}->{'directory'});
+	my $display = _display_setting($config);
+	return unless(ref($display) eq 'HASH');
+	return _resolve_directory($display->{'directory'});
 }
 
 # name => directory for each of the given pages whose module is not simply in
-# @INC: the page's own <directory>, else <pages><directory> if there is one.
+# @INC: the page's own <directory>, else <display><directory> if there is one.
 sub _page_directories
 {
 	my ($self, $config, @pages) = @_;
