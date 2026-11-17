@@ -76,4 +76,31 @@ like(render('page=nosuch'), qr/^Status: 404 Not Found/m, 'an unknown page is 404
 	like(render('page=states'), qr/^Status: 200 OK/m, 'a page with its own <directory> loads from there');
 }
 
+# The same for a data module: move Web::VWF::Data::states out of example/lib and
+# name where it went in its <database>.  A fresh copy of the site, as the one
+# above has had its states page moved already.
+{
+	my $site2 = File::Spec->catdir(tempdir(CLEANUP => 1), 'example');
+	File::Copy::Recursive::dircopy(File::Spec->catdir($root, 'example'), $site2) or die "Cannot copy the example: $!";
+	$site = $site2;
+
+	my $moved = File::Spec->catdir(tempdir(CLEANUP => 1), 'data-modules');
+	my $from = File::Spec->catfile($site, 'lib', 'Web', 'VWF', 'Data', 'states.pm');
+	File::Path::make_path($moved);
+	File::Copy::move($from, File::Spec->catfile($moved, 'states.pm')) or die "Cannot move $from: $!";
+
+	unlike(render('page=states'), qr/<td>NY<\/td>/, 'states has no data when its module is not where it is looked for');
+
+	my $conf = File::Spec->catfile($site, 'conf', 'default');
+	open(my $in, '<', $conf) or die "$conf: $!";
+	my $xml = do { local $/; <$in> };
+	close($in);
+	$xml =~ s{(<name>states</name>)(\s*<description>List)}{$1<directory>$moved</directory>$2} or die 'no states database in the configuration';
+	open(my $out, '>', $conf) or die "$conf: $!";
+	print $out $xml;
+	close($out);
+
+	like(render('page=states'), qr{<td>NY</td><td>N\.Y\.</td><td>New York</td>}, 'a database with its own <directory> loads from there');
+}
+
 done_testing();

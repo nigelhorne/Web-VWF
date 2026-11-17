@@ -1251,18 +1251,28 @@ sub _config_pages
 {
 	my (undef, $config) = @_;
 
-	my $pages = _display_setting($config);
-	return unless(defined($pages));
+	return _config_entries(_display_setting($config), 'page');
+}
+
+# The common reader for a setting that is a list of named things, each with an
+# optional description and directory: the elements called $item inside $setting
+# (a hash), or the array or string of names of the old form.  Returns
+# { name, description, directory } hashes, in order, without repetitions.
+sub _config_entries
+{
+	my ($setting, $item) = @_;
+
+	return unless(defined($setting));
 
 	my @entries;
-	if(ref($pages) eq 'HASH') {
-		my $page = $pages->{'page'};
-		return unless(defined($page));
-		@entries = (ref($page) eq 'ARRAY') ? @{$page} : ($page);
-	} elsif(ref($pages) eq 'ARRAY') {
-		@entries = @{$pages};
+	if(ref($setting) eq 'HASH') {
+		my $found = $setting->{$item};
+		return unless(defined($found));
+		@entries = (ref($found) eq 'ARRAY') ? @{$found} : ($found);
+	} elsif(ref($setting) eq 'ARRAY') {
+		@entries = @{$setting};
 	} else {
-		@entries = split /[\s,]+/, $pages;
+		@entries = split /[\s,]+/, $setting;
 	}
 
 	my (%seen, @found);
@@ -1353,6 +1363,66 @@ sub _page_descriptions
 	return map { $_->{'name'} => $_->{'description'} } grep { length($_->{'description'}) } $self->_config_pages($config);
 }
 
+# The data modules the site declares, as a list of
+# { name, module, description, directory } in the order they were written:
+#	<databases>
+#		<directory>/path/to/modules</directory>
+#		<database>
+#			<name>states</name>
+#			<description>List of data about the U.S. states</description>
+#			<directory>/path/to/states/module</directory>
+#		</database>
+#	</databases>
+# The container is <databases>, not <data>: the data modules take their
+# constructor arguments from the configuration's top-level keys, and a key called
+# data would replace the rows of every database with the setting itself.
+# name is what the page is given (lower-cased last part), module the class, and
+# directory where its .pm file is, or undef to find the class in @INC.  A
+# <directory> in a <database> beats the one in <databases>.  The directories are those
+# of the modules, not of the databases' files: those are <database_dir>.
+# What is declared, in order of preference:
+#	1. the <database> elements;
+#	2. the old <data_modules>index, states</data_modules> string, which is also
+#	   how a site says "none" by leaving it empty;
+#	3. with a <databases><directory> and no <database>, every *.pm in that directory;
+#	4. the default, Web::VWF::Data::index.
+# A name with no :: is one of this distribution's own, so index is
+# Web::VWF::Data::index; a name that has :: is used as written, which is how a
+# site names its own modules.  The file looked for in a directory is named for
+# the last part of the class, whichever way the class was written.
+sub _data_modules
+{
+	my ($self, $config) = @_;
+
+	my $databases = $config->{'databases'};
+	my $default_dir = (ref($databases) eq 'HASH') ? _resolve_directory($databases->{'directory'}) : undef;
+
+	my @entries = _config_entries($databases, 'database');
+	unless(@entries) {
+		if(defined($config->{'data_modules'})) {
+			@entries = map { +{ name => $_, description => '', directory => '' } } $self->_config_list($config, 'data_modules');
+		} elsif(defined($default_dir)) {
+			@entries = map { +{ name => $_, description => '', directory => '' } } sort(map { basename($_, '.pm') } glob(File::Spec->catfile($default_dir, '*.pm')));
+		} else {
+			@entries = map { +{ name => $_, description => '', directory => '' } } @DEFAULT_DATA_MODULES;
+		}
+	}
+
+	my @modules;
+	foreach my $entry (@entries) {
+		my $module = ($entry->{'name'} =~ /::/) ? $entry->{'name'} : "Web::VWF::Data::$entry->{'name'}";
+		my $last = (split(/::/, $module))[-1];
+		my $dir = _resolve_directory($entry->{'directory'}) // $default_dir;
+		push @modules, {
+			name => lc($last),
+			module => $module,
+			description => $entry->{'description'},
+			file => defined($dir) ? File::Spec->catfile($dir, "$last.pm") : undef,
+		};
+	}
+	return @modules;
+}
+
 # Read the settings this site declares, once per process, and act on them: open
 # the database directory it names, load the data modules it names and give the
 # pages the languages and addresses it names.  Everything left unsaid keeps the
@@ -1389,18 +1459,21 @@ sub _site_setup
 	# Addresses exempt from rate limiting
 	@rate_limit_trusted_ips = $self->_config_list($config, 'rate_limit_trusted_ips', @DEFAULT_RATE_LIMIT_TRUSTED_IPS);
 
-	# The site's data modules.  Each is loaded, constructed with ->new() and
-	# given to every page under the last part of its name, lower-cased:
-	# Web::VWF::Data::index arrives at a page as index, and a site's own
-	# Bands::Data::bands as bands.  A name with no :: in it is one of this
-	# distribution's own, so <data_modules>index, states</data_modules> means
-	# Web::VWF::Data::index and Web::VWF::Data::states; a name that has :: is
-	# used as written, which is how a site names its own modules.
-	foreach my $entry ($self->_config_list($config, 'data_modules', @DEFAULT_DATA_MODULES)) {
-		my $module = ($entry =~ /::/) ? $entry : "Web::VWF::Data::$entry";
+	# The site's data modules (see _data_modules).  Each is loaded, constructed
+	# with ->new() and given to every page under the last part of its name,
+	# lower-cased: Web::VWF::Data::index arrives at a page as index, and a
+	# site's own Bands::Data::bands as bands.
+	foreach my $database ($self->_data_modules($config)) {
+		my $module = $database->{'module'};
 		my $handle;
 		eval {
-			require_module($module);
+			if(defined($database->{'file'})) {
+				# From the directory the site gave, not from @INC
+				-f $database->{'file'} or die "No such file $database->{'file'}\n";
+				require $database->{'file'};
+			} else {
+				require_module($module);
+			}
 			$module->import() if($module->can('import'));
 			$handle = $module->new();
 		};
@@ -1412,10 +1485,10 @@ sub _site_setup
 			next;
 		}
 
-		my $name = lc((split(/::/, $module))[-1]);
+		my $name = $database->{'name'};
 		$handle->set_logger($logger) if($handle->can('set_logger'));
 		$data{$name} = $handle;
-		$logger->debug("Data module $module is available to pages as \$$name");
+		$logger->debug("Data module $module is available to pages as \$$name", length($database->{'description'}) ? ": $database->{'description'}" : '');
 	}
 
 	return 1;

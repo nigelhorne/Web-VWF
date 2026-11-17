@@ -33,6 +33,7 @@ t/function.t
 t/mail.t
 t/meta-data-charts.t
 t/pages-config.t
+t/data-config.t
 t/pod.t
 t/redact.t
 t/version.t
