@@ -161,6 +161,10 @@ my @valid_pages;
 # site described in its configuration have an entry.  Used by the 300 response.
 my %page_description;
 
+# Where a page's module is, for the pages that have a <directory> of their own
+# or inherit <pages><directory>; any other page's module is found in @INC.
+my %page_directory;
+
 # FastCGI signal handling: the FCGI process lives across many requests so we
 # cannot exit immediately on SIGTERM/SIGUSR1 - we set a flag and exit cleanly
 # after the current request finishes.  See http://fastcgi.com/docs/faq.html#PerlSignals
@@ -630,6 +634,7 @@ sub _doit
 	unless(@valid_pages) {
 		@valid_pages = $self->_valid_pages($config);
 		%page_description = $self->_page_descriptions($config);
+		%page_directory = $self->_page_directories($config, @valid_pages);
 	}
 
 	# These caches are created lazily on the first request and reused across the
@@ -1007,7 +1012,7 @@ sub _doit
 		} else {
 			my $display_module = "Web::VWF::Display::$page";
 
-			$logger->debug("doit(): Loading module $display_module from @INC");
+			$logger->debug("doit(): Loading module $display_module from ", $page_directory{$page} // '@INC');
 			unless($display_module->can('new')) {
 				# String-eval elimination:
 				#   The original code used eval "require $display_module" which is a
@@ -1015,7 +1020,17 @@ sub _doit
 				#   stripped of \W characters, a Unicode or locale edge-case could
 				#   allow a bypass.  Module::Runtime::require_module() loads a module
 				#   by name using a block eval internally, with no string-eval surface.
-				eval { require_module($display_module) };
+				#
+				# A page with a directory is loaded from its file there instead
+				# of from @INC.  Its name has been checked against the valid
+				# pages, which are \w+ only, so the path cannot leave the
+				# directory.
+				if(my $dir = $page_directory{$page}) {
+					my $file = File::Spec->catfile($dir, "$page.pm");
+					eval { -f $file or die "No such file $file\n"; require $file };
+				} else {
+					eval { require_module($display_module) };
+				}
 				$display_module->import() unless $@;
 			}
 			if($@) {
@@ -1213,8 +1228,11 @@ sub _config_list
 # { name => ..., description => ... } in the order they were written:
 #	<pages>
 #		<page><name>states</name><description>About the U.S. states</description></page>
+#		<directory>/path/to/pages</directory>
 #	</pages>
-# One <page> is read as a hash and several as an array, so both are handled.
+# A <directory> in <pages> is where the page modules are looked for, and the
+# list of pages when there are no <page>s (see _valid_pages); one in a <page>
+# is where that page's module is, and beats the one in <pages>.  One <page> is read as a hash and several as an array, so both are handled.
 # The old form, a single string of names (<pages>index, meta_data</pages>), is
 # still read, with no descriptions, so existing sites keep working.  A page
 # without a usable name is dropped, and so is a repeated one, since the same
@@ -1240,17 +1258,22 @@ sub _config_pages
 	my (%seen, @found);
 	foreach my $entry (@entries) {
 		next unless(defined($entry));
-		my ($name, $description) = (ref($entry) eq 'HASH') ? @{$entry}{qw(name description)} : ($entry, undef);
+		my ($name, $description, $directory) = (ref($entry) eq 'HASH') ? @{$entry}{qw(name description directory)} : ($entry, undef, undef);
 		next unless(defined($name) && !ref($name) && length($name));
 		next if($seen{$name}++);
-		push @found, { name => $name, description => (defined($description) && !ref($description)) ? $description : '' };
+		push @found, {
+			name => $name,
+			description => (defined($description) && !ref($description)) ? $description : '',
+			directory => (defined($directory) && !ref($directory)) ? $directory : '',
+		};
 	}
 	return @found;
 }
 
 # The pages that ?page= may load.  Sites declare them in the config file (see
-# _config_pages); otherwise every ../lib/Web/VWF/Display/*.pm next to this
-# script is allowed, except captcha, which only the rate limiter shows.
+# _config_pages); otherwise every *.pm in the page directory is allowed, except
+# captcha, which only the rate limiter shows.  The page directory is
+# <pages><directory>, or ../lib/Web/VWF/Display next to this script.
 sub _valid_pages
 {
 	my $self = shift;
@@ -1259,13 +1282,56 @@ sub _valid_pages
 	my @pages = map { $_->{'name'} } $self->_config_pages($config);
 	return grep { /\A\w+\z/ } @pages if(@pages);
 
-	# FIXME: Remove the hard coding
-	my $dir = File::Spec->catdir($script_dir, File::Spec->updir(), 'lib', 'Web', 'VWF', 'Display');
+	# <pages><directory> overrides where the page modules are looked for.
+	# Only the default has the framework's own hard-coded layout.
+	my $dir = $self->_pages_directory($config);
+	unless(defined($dir)) {
+		# FIXME: Remove the hard coding
+		$dir = File::Spec->catdir($script_dir, File::Spec->updir(), 'lib', 'Web', 'VWF', 'Display');
+	}
 	# The list is built first rather than returned from inside sort(): a sort
 	# that is returned directly takes the caller's context, and sort in scalar
 	# context has no defined meaning.
 	my @found = sort(grep { $_ ne 'captcha' } map { basename($_, '.pm') } glob(File::Spec->catfile($dir, '*.pm')));
 	return @found;
+}
+
+# A directory from the configuration, made absolute: a relative one is taken
+# from the script's directory, as the default is.  Undef if there isn't one.
+sub _resolve_directory
+{
+	my $directory = shift;
+
+	# An explicit undef, not a bare return: this is used inside map, where an
+	# empty list would unbalance the hash being built
+	return undef unless(defined($directory) && !ref($directory) && length($directory));	## no critic (ProhibitExplicitReturnUndef)
+	return File::Spec->file_name_is_absolute($directory) ? $directory : File::Spec->catdir($script_dir, $directory);
+}
+
+# <pages><directory>, resolved, or undef
+sub _pages_directory
+{
+	my (undef, $config) = @_;
+
+	return unless(ref($config->{'pages'}) eq 'HASH');
+	return _resolve_directory($config->{'pages'}->{'directory'});
+}
+
+# name => directory for each of the given pages whose module is not simply in
+# @INC: the page's own <directory>, else <pages><directory> if there is one.
+sub _page_directories
+{
+	my ($self, $config, @pages) = @_;
+
+	my $default = $self->_pages_directory($config);
+	my %own = map { $_->{'name'} => _resolve_directory($_->{'directory'}) } $self->_config_pages($config);
+
+	my %directory;
+	foreach my $page (@pages) {
+		my $dir = $own{$page} // $default;
+		$directory{$page} = $dir if(defined($dir));
+	}
+	return %directory;
 }
 
 # name => description for each page the configuration describes

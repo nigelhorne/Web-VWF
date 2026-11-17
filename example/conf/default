@@ -1,6 +1,13 @@
 <?xml version="1.0"?>
 <config>
 	<pages>
+		<!--
+			Without any <page> elements, the page modules found in <directory>
+			are the valid pages (default: ../lib/Web/VWF/Display beside cgi-bin).
+			<directory>/path/to/Display</directory>
+			A <directory> inside a <page> says where that page's module is, and
+			beats this one.
+		-->
 		<page>
 			<name>index</name>
 			<description>The home page, with the contact form</description>

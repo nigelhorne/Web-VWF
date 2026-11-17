@@ -2,6 +2,11 @@ Revision history for Web-VWF
 
 0.003.0
 	[ Enhancements ]
+	- <pages><directory> overrides the directory searched for page modules when no
+	<page> is listed, and the page modules are loaded from it; a <directory> in a
+	<page> says where that page's module is and beats the one in <pages>.  A page
+	with neither is found in @INC and the default is unchanged
+	(../lib/Web/VWF/Display).
 	- File-based caches (Berkeley DB, File) now go in $CACHEDIR, or failing that
 	$CACHE_DIR, when either is set, ahead of $root_dir and the configuration; the
 	directory is created if it does not exist.  Previously root_dir=example put
