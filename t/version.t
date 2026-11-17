@@ -15,7 +15,13 @@ use FindBin qw($Bin);
 my $root = File::Spec->catdir($Bin, File::Spec->updir());
 my $lib = File::Spec->catdir($root, 'lib');
 
-require "$lib/Web/VWF.pm";
+# Loaded by name, from lib/, and not by the path of the file.  Devel::Cover asks
+# Pod::Coverage about every package at the end of the run, and that does
+# "require Web::VWF"; a module that was loaded by path has no entry in %INC under
+# that name, so the whole file was compiled a second time and every subroutine in
+# it reported as "redefined" in the coverage step of CI.
+BEGIN { unshift @INC, File::Spec->catdir($Bin, File::Spec->updir(), 'lib') }
+require Web::VWF;
 my $version = "$Web::VWF::VERSION";
 
 my @modules = glob("$lib/Web/VWF/*.pm $lib/Web/VWF/*/*.pm");
