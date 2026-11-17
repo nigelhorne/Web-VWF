@@ -1,6 +1,19 @@
 <?xml version="1.0"?>
 <config>
-	<pages>index, meta_data, states</pages>
+	<pages>
+		<page>
+			<name>index</name>
+			<description>The home page, with the contact form</description>
+		</page>
+		<page>
+			<name>meta_data</name>
+			<description>Charts of the server and of the traffic it has handled</description>
+		</page>
+		<page>
+			<name>states</name>
+			<description>Displays information about the U.S. states</description>
+		</page>
+	</pages>
 	<data_modules>Web::VWF::Data::index, Web::VWF::Data::states</data_modules>
 	<memory_cache>
 		<driver>Null</driver>

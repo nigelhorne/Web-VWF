@@ -48,6 +48,7 @@ like(render('page=states'), qr/^Status: 200 OK/m, 'page=states is 200');
 like(render('page=states'), qr{<td>NY</td><td>N\.Y\.</td><td>New York</td>}, 'page=states lists New York');
 is(scalar(() = render('page=states') =~ /<tr><td>/g), 50, 'page=states lists all 50 states');
 like(render(), qr/^Status: 300 Multiple Choices/m, 'no page is 300');
+like(render(), qr{page=states - Displays information about the U\.S\. states}, 'the 300 describes each page');
 like(render('page=nosuch'), qr/^Status: 404 Not Found/m, 'an unknown page is 404');
 
 done_testing();

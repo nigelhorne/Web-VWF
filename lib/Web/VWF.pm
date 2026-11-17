@@ -157,6 +157,10 @@ my $config;
 # The pages that may be loaded; worked out in doit() since it needs $config
 my @valid_pages;
 
+# What each valid page says it is for, keyed by page name; only the pages the
+# site described in its configuration have an entry.  Used by the 300 response.
+my %page_description;
+
 # FastCGI signal handling: the FCGI process lives across many requests so we
 # cannot exit immediately on SIGTERM/SIGUSR1 - we set a flag and exit cleanly
 # after the current request finishes.  See http://fastcgi.com/docs/faq.html#PerlSignals
@@ -623,7 +627,10 @@ sub _doit
 		$acl->allow_ip($ip);
 	}
 
-	@valid_pages = $self->_valid_pages($config) unless(@valid_pages);
+	unless(@valid_pages) {
+		@valid_pages = $self->_valid_pages($config);
+		%page_description = $self->_page_descriptions($config);
+	}
 
 	# These caches are created lazily on the first request and reused across the
 	# FCGI accept loop to amortise the cost of cache initialisation.
@@ -1138,7 +1145,9 @@ sub choose
 	# RFC 7231 §4.3.2: a HEAD response must not include a body.
 	unless($ENV{'REQUEST_METHOD'} && ($ENV{'REQUEST_METHOD'} eq 'HEAD')) {
 		# The same list that doit() allows, so the two cannot differ
-		print map { "/cgi-bin/page.fcgi?page=$_\n" } @valid_pages;
+		print map {
+			"/cgi-bin/page.fcgi?page=$_" . (length($page_description{$_} // '') ? " - $page_description{$_}" : '') . "\n"
+		} @valid_pages;
 	}
 }
 
@@ -1200,16 +1209,54 @@ sub _config_list
 	return grep { defined($_) && length($_) && !$seen{$_}++ } @values;
 }
 
-# The pages that ?page= may load.  Sites can list them in the config file
-# (<pages>index, meta_data</pages>); otherwise every ../lib/Web/VWF/Display/*.pm
-# next to this script is allowed, except captcha, which only the rate limiter
-# shows.
+# The pages the site's configuration file declares, as a list of
+# { name => ..., description => ... } in the order they were written:
+#	<pages>
+#		<page><name>states</name><description>About the U.S. states</description></page>
+#	</pages>
+# One <page> is read as a hash and several as an array, so both are handled.
+# The old form, a single string of names (<pages>index, meta_data</pages>), is
+# still read, with no descriptions, so existing sites keep working.  A page
+# without a usable name is dropped, and so is a repeated one, since the same
+# file can be loaded more than once when the configuration is merged.
+sub _config_pages
+{
+	my (undef, $config) = @_;
+
+	my $pages = $config->{'pages'};
+	return unless(defined($pages));
+
+	my @entries;
+	if(ref($pages) eq 'HASH') {
+		my $page = $pages->{'page'};
+		return unless(defined($page));
+		@entries = (ref($page) eq 'ARRAY') ? @{$page} : ($page);
+	} elsif(ref($pages) eq 'ARRAY') {
+		@entries = @{$pages};
+	} else {
+		@entries = split /[\s,]+/, $pages;
+	}
+
+	my (%seen, @found);
+	foreach my $entry (@entries) {
+		next unless(defined($entry));
+		my ($name, $description) = (ref($entry) eq 'HASH') ? @{$entry}{qw(name description)} : ($entry, undef);
+		next unless(defined($name) && !ref($name) && length($name));
+		next if($seen{$name}++);
+		push @found, { name => $name, description => (defined($description) && !ref($description)) ? $description : '' };
+	}
+	return @found;
+}
+
+# The pages that ?page= may load.  Sites declare them in the config file (see
+# _config_pages); otherwise every ../lib/Web/VWF/Display/*.pm next to this
+# script is allowed, except captcha, which only the rate limiter shows.
 sub _valid_pages
 {
 	my $self = shift;
 	my $config = shift;
 
-	my @pages = $self->_config_list($config, 'pages');
+	my @pages = map { $_->{'name'} } $self->_config_pages($config);
 	return grep { /\A\w+\z/ } @pages if(@pages);
 
 	# FIXME: Remove the hard coding
@@ -1219,6 +1266,14 @@ sub _valid_pages
 	# context has no defined meaning.
 	my @found = sort(grep { $_ ne 'captcha' } map { basename($_, '.pm') } glob(File::Spec->catfile($dir, '*.pm')));
 	return @found;
+}
+
+# name => description for each page the configuration describes
+sub _page_descriptions
+{
+	my ($self, $config) = @_;
+
+	return map { $_->{'name'} => $_->{'description'} } grep { length($_->{'description'}) } $self->_config_pages($config);
 }
 
 # Read the settings this site declares, once per process, and act on them: open
