@@ -1,6 +1,11 @@
 Revision history for Web-VWF
 
-0.002.1
+0.003.0
+	[ Enhancements ]
+	- The example site has a states page (?page=states): a sample CSV database,
+	example/data/states.csv (the 50 U.S. states), read through the new
+	Web::VWF::Data::states and shown by Web::VWF::Display::states and the
+	states.tmpl template.
 	[ Bug Fixes ]
 	- Handle captcha display failure
 

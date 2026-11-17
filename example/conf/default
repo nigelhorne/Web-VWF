@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <config>
-	<pages>index, meta_data</pages>
+	<pages>index, meta_data, states</pages>
+	<data_modules>Web::VWF::Data::index, Web::VWF::Data::states</data_modules>
 	<memory_cache>
 		<driver>Null</driver>
 	</memory_cache>
