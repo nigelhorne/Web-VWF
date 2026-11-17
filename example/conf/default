@@ -30,7 +30,7 @@
 		-->
 		<database>
 			<name>index</name>
-			<description>The people who can be contacted from the index page</description>
+			<description>The people who can be contacted from the index page (index.csv)</description>
 		</database>
 		<database>
 			<name>states</name>

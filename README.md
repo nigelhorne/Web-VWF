@@ -1,12 +1,12 @@
-## Name
+# NAME
 
 Web::VWF - Versatile Web Framework - easily build a website to support different languages and client platforms
 
-## Version
+# VERSION
 
 Version 0.002.0
 
-## Description
+# DESCRIPTION
 
 Web::VWF is [VWF](https://github.com/nigelhorne/vwf), the Versatile Web
 Framework, packaged as a CPAN distribution.  It is an MVC framework for
@@ -73,9 +73,9 @@ A site that used to carry a renamed copy of VWF of its own deletes that copy,
 installs this distribution, renames `VWF::` to `Web::VWF::` in its own code,
 and moves its templates from `.../VWF/Display/` to `.../Web/VWF/Display/`.
 
-## Subroutines/Methods
+# SUBROUTINES/METHODS
 
-### New
+## new
 
 The configuration of a site, and the directory the server keeps it in.
 
@@ -89,73 +89,61 @@ default is `/usr/lib/vwf`.  Optional.
 - `info`, `logger`, `config_directory`, `config_file`, `config` -
 handed to [Web::VWF::Config](https://metacpan.org/pod/Web%3A%3AVWF%3A%3AConfig), which describes them.
 
-#### Api Specification
+### API SPECIFICATION
 
-##### Input
+#### INPUT
 
-```perl
-    {
-            directory => { type => 'string', optional => 1 },
-            info => { type => 'object', optional => 1 },
-            logger => { type => 'object', optional => 1 },
-            config_directory => { type => 'string', optional => 1 },
-            config_file => { type => 'string', optional => 1 },
-            config => { type => 'hashref', optional => 1 },
-    }
-```
+        {
+                directory => { type => 'string', optional => 1 },
+                info => { type => 'object', optional => 1 },
+                logger => { type => 'object', optional => 1 },
+                config_directory => { type => 'string', optional => 1 },
+                config_file => { type => 'string', optional => 1 },
+                config => { type => 'hashref', optional => 1 },
+        }
 
 `new` croaks with `directory must be a string` when `directory` is a reference.
 
-##### Output
+#### OUTPUT
 
-```perl
-    { type => 'object', isa => 'Web::VWF' }
-```
+        { type => 'object', isa => 'Web::VWF' }
 
-### \_Directory
+## \_directory
 
 Internal: not part of the public interface.  The directory the server keeps this site's configuration in: what `new()` was
 given, or `/usr/lib/vwf`.  [Web::VWF::Config](https://metacpan.org/pod/Web%3A%3AVWF%3A%3AConfig) adds the site's own name to it.
 
-#### Api Specification
+### API SPECIFICATION
 
-##### Input
+#### INPUT
 
-```
-    {}
-```
+        {}
 
-##### Output
+#### OUTPUT
 
-```perl
-    { type => 'string' }
-```
+        { type => 'string' }
 
-### \_Config
+## \_config
 
 Internal: not part of the public interface.  The site's configuration, read once and kept: a site that has no `conf/` of its
 own beside `cgi-bin/` is configured from the server's directory for it, and
 [Web::VWF::Config](https://metacpan.org/pod/Web%3A%3AVWF%3A%3AConfig) describes the rest of the search.
 
-#### Api Specification
+### API SPECIFICATION
 
-##### Input
+#### INPUT
 
-```
-    {}
-```
+        {}
 
-##### Output
+#### OUTPUT
 
-```perl
-    { type => 'object', isa => 'Web::VWF::Config' }
-```
+        { type => 'object', isa => 'Web::VWF::Config' }
 
-## Author
+# AUTHOR
 
 Nigel Horne, `<njh at nigelhorne.com>`
 
-## Licence and Copyright
+# LICENCE AND COPYRIGHT
 
 Copyright 2010-2026 Nigel Horne.
 
