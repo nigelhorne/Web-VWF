@@ -31,7 +31,7 @@ requires 'File::Slurp';   # Display/table.pm
 requires 'File::Spec';
 requires 'File::pfopen';
 requires 'Filesys::Df';
-requires 'HTML::D3';   # Display/meta_data.pm
+requires 'HTML::D3', '0.30';   # Display/meta_data.pm; 0.23 and earlier take positional arguments, not the hashes it passes
 requires 'HTML::SocialMedia';
 requires 'HTTP::Date';   # For the Last-Modified header
 requires 'HTTP::Status';

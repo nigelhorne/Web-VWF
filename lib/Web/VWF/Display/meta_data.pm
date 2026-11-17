@@ -11,7 +11,10 @@ use version; our $VERSION = version->declare('0.002.0');
 
 use parent 'Web::VWF::Display';
 
-use HTML::D3;
+# 0.23 and earlier take positional arguments (render_pie_chart_snippet($data,
+# $opts)) and die "Data must be an array of arrays" on the hashes passed here;
+# 0.24 was the first to take them, and the charts were built and tested on 0.30.
+use HTML::D3 0.30;
 
 # Filesys::Df refuses to install on Windows, so Makefile.PL does not require it
 # there.  A server without it just has no disk figure: df() then answers as if

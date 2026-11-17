@@ -58,7 +58,7 @@ WriteMakefile(
 		# installing at all.  Display/meta_data.pm leaves the disk figure out
 		# when it is missing.
 		(($^O ne 'MSWin32') ? ('Filesys::Df' => 0) : ()),
-		'HTML::D3' => 0,		# Display/meta_data.pm
+		'HTML::D3' => 0.30,	# Display/meta_data.pm; 0.23 and earlier take positional arguments, not the hashes it passes
 		'HTML::SocialMedia' => 0,
 		'HTTP::Date' => 0,		# For the Last-Modified header
 		'HTTP::Status' => 0,

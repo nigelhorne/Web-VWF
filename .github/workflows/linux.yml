@@ -49,7 +49,7 @@ jobs:
           # Mail::DKIM is only recommended, but installing it here is what makes
           # t/mail.t test the signature instead of skipping that subtest.
           cpanm --skip-satisfied -qn Crypt::URandom File::pfopen Timer::Simple File::Slurp Mail::DKIM
-          cpanm --skip-satisfied -qn Filesys::Df Sys::MemInfo Sys::Uptime System::Info Data::Validate::URI Params::Validate::Strict HTML::D3 DateTime Time::Duration::Parse
+          cpanm --skip-satisfied -qn Filesys::Df Sys::MemInfo Sys::Uptime System::Info Data::Validate::URI Params::Validate::Strict HTML::D3~0.30 DateTime Time::Duration::Parse
           cpanm --skip-satisfied -qn Test::Most Readonly IP::Country::Fast CGI::Info~1.14
           # Makefile.PL's TEST_REQUIRES, which the manual list above does not
           # read.  Without Test::Returns, t/function.t dies on its own use line

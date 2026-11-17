@@ -34,6 +34,12 @@ Revision history for Web-VWF
 	Web::VWF::Data::states and shown by Web::VWF::Display::states and the
 	states.tmpl template.
 	[ Bug Fixes ]
+	- Require HTML::D3 0.30.  CPAN Testers (Perl 5.44, aarch64 Linux) had 0.23 and
+	the meta_data page, t/function.t and t/meta-data-charts.t died with "Data must
+	be an array of arrays": 0.23 takes render_pie_chart_snippet($data, $opts)
+	positionally, and meta_data passes a hash.  The prerequisite is now declared in
+	Makefile.PL, cpanfile and linux.yml, and meta_data checks it on load.
+	Fixes https://matrix.perl-magpie.org/results/ffb3469e-de40-11f1-a09d-aafb97416a10
 	- Handle captcha display failure
 
 0.002.0	Wed Nov 11 08:54:17 PM EST 2026
