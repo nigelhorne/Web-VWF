@@ -31,6 +31,7 @@ use Database::Abstraction;
 # use Devel::Confess;
 use File::Basename;
 # use CGI::Alert $ENV{'SERVER_ADMIN'} || 'you@example.com';
+use CGI::Alert $ENV{'SERVER_ADMIN'};
 use FCGI;
 use FCGI::Buffer;
 use File::HomeDir;
