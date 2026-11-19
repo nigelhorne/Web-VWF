@@ -6,7 +6,7 @@ use strict;
 use warnings;
 # use diagnostics;
 
-use version; our $VERSION = version->declare('0.003.0');
+use version; our $VERSION = version->declare('0.003.1');
 
 # TODO: Try Log::Any::Adapter::Abstraction instead of Log::Any
 
@@ -192,7 +192,7 @@ Web::VWF - Versatile Web Framework - easily build a website to support different
 
 =head1 VERSION
 
-Version 0.003.0
+Version 0.003.1
 
 =head1 SYNOPSIS
 
