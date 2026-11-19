@@ -26,6 +26,7 @@ WriteMakefile(
 		'Carp' => 0,
 		'Carp::Always' => 0,
 		'CGI::ACL' => 0.06,		# For deny_cloud
+		'CGI::Alert' => 0,
 		'CGI::Carp' => 0,
 		'CGI::IDS' => 0,		# Intrusion detection, used by Allow.pm and Display.pm
 		'CGI::Info' => 1.14,		# 1.14 for is_ai()

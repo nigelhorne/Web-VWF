@@ -3,6 +3,7 @@
 requires 'perl', '5.20.0';
 
 requires 'CGI::ACL', '0.06';   # For deny_cloud
+requires 'CGI::Alert';
 requires 'CGI::Carp';
 requires 'CGI::IDS';   # Intrusion detection, used by Allow.pm and Display.pm
 requires 'CGI::Info', '1.14';   # 1.14 for is_ai()
