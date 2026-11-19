@@ -30,8 +30,10 @@ use Config::Abstraction;
 use Database::Abstraction;
 # use Devel::Confess;
 use File::Basename;
-# use CGI::Alert $ENV{'SERVER_ADMIN'} || 'you@example.com';
-use CGI::Alert $ENV{'SERVER_ADMIN'};
+# The address is always defined: CGI::Alert warns about an undefined one, which
+# fails the B::Lint/warnings::unused check in CI and, in a FastCGI worker where
+# SERVER_ADMIN is not set, fills the log on every start.
+use CGI::Alert $ENV{'SERVER_ADMIN'} || 'webmaster@localhost';
 use FCGI;
 use FCGI::Buffer;
 use File::HomeDir;
