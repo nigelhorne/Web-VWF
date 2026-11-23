@@ -3,9 +3,9 @@ LICENSE
 cpanfile
 example/cgi-bin/page.fcgi
 example/conf/default
-example/data/index.csv
-example/data/states.csv
-example/lib/Web/VWF/Data/states.pm
+example/data/states.pm
+example/databases/index.csv
+example/databases/states.csv
 example/lib/Web/VWF/Display/states.pm
 example/templates/web/Web/VWF/Display/captcha.tmpl
 example/templates/web/Web/VWF/Display/index.tmpl

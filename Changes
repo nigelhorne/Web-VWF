@@ -1,6 +1,17 @@
 Revision history for Web-VWF
 
-0.003.2
+0.004.0
+	[ Incompatible changes ]
+	- The data files and the drivers that read them are now configured apart:
+	<databases><directory> is where the data files (CSV, XML, SQLite) are
+	(replacing database_dir, which is still read), and <data> declares the drivers,
+	one <driver> each, with a <directory> for all of them or for one.  Without a
+	directory the drivers are looked for in the databases directory, then @INC,
+	rather than only in @INC.  <databases><database> is no longer read; write
+	<data><driver>.  The example site's states driver is in example/data/ and its data
+	files in example/databases/.  The default databases directory is now
+	../databases, not ../data, which is for the drivers.
+
 	[ Bug Fixes ]
 	- Choose the right Perl in the example/cgi-bin/page.fcgi
 

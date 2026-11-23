@@ -4,7 +4,7 @@ Web::VWF - Versatile Web Framework - easily build a website to support different
 
 ## Version
 
-Version 0.003.1
+Version 0.004.0
 
 ## Synopsis
 
@@ -152,51 +152,62 @@ in it, except `captcha.pm`, is a page.  With no `display` either, that is
 The old `pages` is read when there is no `display`, as is its old form of one
 string of names, `<pages>index, meta_data</pages>`.
 
-### Data: `Databases`
+### Data: `Databases` and `Data`
 
 ```
     <databases>
-            <directory>/path/to/modules</directory>
-            <database>
+            <directory>/path/to/files</directory>
+    </databases>
+    <data>
+            <directory>/path/to/drivers</directory>
+            <driver>
                     <name>states</name>
                     <description>List of data about the U.S. states</description>
-                    <directory>/path/to/this/module</directory>
-            </database>
-    </databases>
+                    <directory>/path/to/this/driver</directory>
+            </driver>
+    </data>
 ```
 
-One `database` for each data module a page may use.  A page is given each as
+`databases` says where the data files are (CSV, XML, SQLite), and `data` where the
+drivers that read them are: the [Database::Abstraction](https://metacpan.org/pod/Database%3A%3AAbstraction) subclasses.  They are
+separate so that the files may be kept apart from code.
+
+`databases`'s `directory` is the directory of the data files.  Default:
+`../databases` beside the script.  Pages are told it as `database_dir` and
+`databasedir`.  The old top-level `database_dir` is read when there is no
+`directory` in `databases`.
+
+One `driver` in `data` for each driver a page may use.  A page is given each as
 a variable named for the last part of its class, lower-cased: the module
 `Web::VWF::Data::states` is `$states` in the page.  A `name` with no `::` in it is
 a `Web::VWF::Data::` module; one with `::`, such as `Bands::Data::bands`, is
 used as written.  The `description` is only logged.
 
-`directory` is where the module's `.pm` file is, in the same way as for
-`display`, named for the last part of the class.  It is not where the
-database's own files are: that is `database_dir`.
+`directory` is where the driver's `.pm` file is, named for the last part of the
+class: in the `driver` for that driver alone, in `data` for all of them.  With
+neither, the drivers are looked for in the `databases` directory.  A driver that
+is not in the `data` or `databases` directory is taken from `@INC`, which is
+how a site uses the distribution's own `Web::VWF::Data::index`.  Only the
+`directory` of a `driver` is strict: a driver that is not in it is not loaded.
 
 What is loaded, in order of preference:
 
-- 1. the `database` elements;
+- 1. the `driver` elements;
 - 2. the old `data_modules`, one string of names, `index, states` (an empty
 one means none);
-- 3. with only a `databases` `directory`, every `.pm` in it;
+- 3. every `.pm` in the `data` directory, or failing that the `databases`
+directory;
 - 4. the default, `Web::VWF::Data::index`.
 
 A module that cannot be loaded is logged and skipped; the pages that do not
 need it still work.
 
-This is not called `data` because the data modules are given the configuration's top-level
-keys as their constructor arguments, and a key called `data` replaces the rows
-of every database.
+Take care in naming a driver's own configuration: the drivers are given the
+configuration's top-level keys as their constructor arguments, so a key called
+`data` would replace the rows of every database.  The framework discards those
+rows, but a driver of your own that is constructed elsewhere must do the same.
 
 ### Other Settings
-
-- `database_dir`
-
-    The directory of the database files (CSV, XML, SQLite) read by the data
-    modules.  Default: `../data` beside the script.  Pages are told it as
-    `database_dir` and `databasedir`.
 
 - `supported_languages`
 

@@ -20,7 +20,7 @@ use warnings;
 use Carp;
 use Readonly;
 
-use version; our $VERSION = version->declare('0.003.1');
+use version; our $VERSION = version->declare('0.004.0');
 
 Readonly::Scalar my $DEFAULT_SENDMAIL => '/usr/sbin/sendmail';
 

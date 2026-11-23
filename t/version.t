@@ -71,7 +71,7 @@ if($changes =~ /^(\d+\.\d+\.\d+)(?:\t(\S.*))?$/m) {
 }
 
 # Every module that ships, the example site's too
-my @example = glob("$root/example/lib/Web/VWF/*/*.pm");
+my @example = (glob("$root/example/lib/Web/VWF/*/*.pm"), glob("$root/example/data/*.pm"));
 foreach my $file (@example) {
 	my $source = slurp($file);
 	(my $name = $file) =~ s/^\Q$root\E.//;

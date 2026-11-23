@@ -14,7 +14,7 @@ use warnings;
 
 use Database::Abstraction;
 
-use version; our $VERSION = version->declare('0.003.1');
+use version; our $VERSION = version->declare('0.004.0');
 
 our @ISA = ('Database::Abstraction');
 
@@ -36,11 +36,11 @@ Web::VWF::Data::states - The example site's database of U.S. states
 
 =head1 VERSION
 
-Version 0.003.1
+Version 0.004.0
 
 =head1 DESCRIPTION
 
-A L<Database::Abstraction> over F<example/data/states.csv>, which has a header
+A L<Database::Abstraction> over F<example/databases/states.csv>, which has a header
 line and one row for each of the 50 states: C<state> (the two letter code, which
 is the key), C<abbreviation> and C<name>.  It is the example of a data module in
 a site's own directory, which L<Web::VWF/CONFIGURATION> describes.  Unlike
