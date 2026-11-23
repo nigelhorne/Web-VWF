@@ -44,6 +44,7 @@ use File::Spec;
 use Params::Get;
 use POSIX qw(strftime);
 use Readonly;
+use Scalar::Util;
 use Module::Runtime qw(require_module);	# Safe dynamic module loading; avoids string eval
 use Timer::Simple;
 use Time::HiRes;
@@ -1229,6 +1230,7 @@ sub _doit
 		no_entry => 1,
 		logger => $logger,
 	});
+	_discard_config_rows($self->{vwf_log});
 	my $log = Class::Simple->new();
 
 	# Stores things for a month or longer
@@ -1986,10 +1988,7 @@ sub _site_setup
 			}
 			$module->import() if($module->can('import'));
 			$handle = $module->new();
-			# <data> is a top-level configuration key, so Database::Abstraction
-			# took it for the rows of the table.  Discard them so that the
-			# driver reads its own file.
-			delete $handle->{'data'} if(defined($handle) && (ref($handle) ne '') && exists($handle->{'data'}));
+			_discard_config_rows($handle);
 		};
 		if(!defined($handle)) {
 			# A module the site named that cannot be loaded is reported and
@@ -2006,6 +2005,18 @@ sub _site_setup
 	}
 
 	return 1;
+}
+
+# <data> is a top-level configuration key, so a Database::Abstraction handle
+# built while the site configures it takes the setting for the rows of its table,
+# and then never opens its file ("Where did the data come from?").  Discard them
+# so that the handle reads its own file.  Every handle this module makes needs it.
+sub _discard_config_rows
+{
+	my $handle = shift;
+
+	delete $handle->{'data'} if(Scalar::Util::blessed($handle) && exists($handle->{'data'}));
+	return $handle;
 }
 
 # Give the current logger to every data handle.  This runs before each request,

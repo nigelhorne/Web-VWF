@@ -45,7 +45,10 @@ sub render
 }
 
 like(render('page=index'), qr/^Status: 200 OK/m, 'page=index is 200');
-like(render('page=meta_data'), qr/^Status: 200 OK/m, 'page=meta_data is 200');
+my $meta_data = render('page=meta_data');
+like($meta_data, qr/^Status: 200 OK/m, 'page=meta_data is 200');
+# The access log is read through a handle that must not take <data> for its rows
+unlike($meta_data, qr/Where did the data come from/, 'page=meta_data reads the access log');
 like(render('page=states'), qr/^Status: 200 OK/m, 'page=states is 200');
 like(render('page=states'), qr{<td>NY</td><td>N\.Y\.</td><td>New York</td>}, 'page=states lists New York');
 is(scalar(() = render('page=states') =~ /<tr><td>/g), 50, 'page=states lists all 50 states');
