@@ -7,10 +7,17 @@ Revision history for Web-VWF
 	(replacing database_dir, which is still read), and <data> declares the drivers,
 	one <driver> each, with a <directory> for all of them or for one.  Without a
 	directory the drivers are looked for in the databases directory, then @INC,
-	rather than only in @INC.  <databases><database> is no longer read; write
-	<data><driver>.  The example site's states driver is in example/data/ and its data
+	rather than only in @INC; only the <directory> of a <driver> is strict, the others
+	fall back to @INC.  <databases><database> is no longer read (a warning is logged);
+	write <data><driver>.  The example site's states driver is in example/data/ and its data
 	files in example/databases/.  The default databases directory is now
 	../databases, not ../data, which is for the drivers.
+
+	[ Enhancements ]
+	- Documented the six functions in Web::VWF that pod-coverage reported:
+	sig_handler, choose, send_error, duration_seconds, blacklisted and filter.
+	- Makefile.PL's META_MERGE excludes example/ and Data::Throttler::Backend::VWF
+	from the PAUSE index.
 
 	[ Bug Fixes ]
 	- Choose the right Perl in the example/cgi-bin/page.fcgi

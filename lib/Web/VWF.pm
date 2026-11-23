@@ -723,6 +723,139 @@ sub _config
 	});
 }
 
+=head2 sig_handler
+
+Internal: not part of the public interface, though it is a plain function, not a
+method.  The handler for TERM and USR1.  It sets the flag that makes C<run> leave its loop and, if no
+request is being handled, flushes the response cache and statistics, detaches
+L<Log::WarnDie> and exits at once.  Mid-request it only sets the flag, so the
+response in flight is sent whole.
+
+=head3 API SPECIFICATION
+
+=head4 INPUT
+
+	{ signal => { type => 'string' } }
+
+=head4 OUTPUT
+
+	{ type => 'undef' }
+
+=head2 choose
+
+Internal: a plain function.  Sends the C<300 Multiple Choices> response: plain
+text that lists C<?page=> and the description of each page the site serves, with
+a C<Last-Modified> header from the page script.  The list is left out for
+C<HEAD>.  It does nothing when the status of the request is already not 200,
+as for an unknown page, where the status line is sent elsewhere.
+
+=head3 API SPECIFICATION
+
+=head4 INPUT
+
+	{}
+
+=head4 OUTPUT
+
+	{ type => 'undef' }
+
+=head2 send_error
+
+Internal: a plain function.  Sends a short plain-text error response, and
+records the status in the request's L<CGI::Info>.  Takes a hash or a hashref:
+
+=over 4
+
+=item C<status>
+
+The HTTP status code.  Required.
+
+=item C<body>
+
+The text to send.  It is not sent for C<HEAD>.
+
+=item C<headers>
+
+Extra header lines, each ending in a newline, such as C<Retry-After>.
+
+=item C<buffered>
+
+True once L<FCGI::Buffer> is capturing the output: it sends the C<Status> line
+itself, so this does not.
+
+=back
+
+=head3 API SPECIFICATION
+
+=head4 INPUT
+
+	{
+		status => { type => 'integer', min => 100, max => 599 },
+		body => { type => 'string', optional => 1 },
+		headers => { type => 'string', optional => 1 },
+		buffered => { type => 'boolean', optional => 1 },
+	}
+
+=head4 OUTPUT
+
+	{ type => 'integer', value => 1 }
+
+=head2 duration_seconds
+
+Internal: a plain function.  Converts a duration such as C<60s>, C<2 minutes> or
+C<90> to whole seconds, with L<Time::Duration::Parse>.  A string of digits is
+already seconds.  One that cannot be parsed is logged as a warning, and
+counts as 60 seconds.
+
+=head3 API SPECIFICATION
+
+=head4 INPUT
+
+	{ duration => { type => 'string' } }
+
+=head4 OUTPUT
+
+	{ type => 'integer', min => 0 }
+
+=head2 blacklisted
+
+Internal: a plain function.  Takes the request's L<CGI::Info> and says whether
+the request looks like an SQL injection attempt.  The address that sent one is
+remembered by the worker, so its later requests are refused without scanning
+them again.  It is only a filter for noise, see L<Web::VWF::Blacklist>.  A
+request of more than 8192 characters is not scanned.  There is nothing to check
+without C<REMOTE_ADDR>.  When it returns true the status of the request has been
+set to 403.
+
+=head3 API SPECIFICATION
+
+=head4 INPUT
+
+	{ info => { type => 'object', isa => 'CGI::Info' } }
+
+=head4 OUTPUT
+
+	{ type => 'boolean' }
+
+=head2 filter
+
+Internal: a plain function, registered with L<Log::WarnDie>.  Called with a
+warning, returns false for the few harmless ones that are not worth logging
+(two missing optional modules under L<Net::OAuth> and L<NetAddr::IP>, and an
+C<S_IFFIFO> message from Fcntl) and true for all the rest.
+
+=head3 API SPECIFICATION
+
+=head4 INPUT
+
+	{ message => { type => 'string' } }
+
+=head4 OUTPUT
+
+	{ type => 'boolean' }
+
+=cut
+
 # Deferred shutdown handler: set the exit flag and, if we are between requests,
 # flush caches and exit immediately.  If we are mid-request, the flag is checked
 # after doit() returns so the in-flight response is sent cleanly.
@@ -1812,7 +1945,13 @@ sub _site_setup
 	# Where the site's own databases are.  Database::Abstraction reads them, and
 	# the pages are told the directory as databasedir and database_dir.
 	$database_dir = $self->_database_directory($config);
-	$logger->debug('Reading databases from ', $database_dir);
+	$logger->info('Reading databases from ', $database_dir);
+
+	# <databases><database> was how a site declared its drivers before 0.004.0.
+	# It is no longer read, so say so rather than leaving the pages without data.
+	if(ref($config->{'databases'}) eq 'HASH' && exists($config->{'databases'}{'database'})) {
+		$logger->warn('<databases><database> is no longer read: declare each driver as <data><driver>');
+	}
 
 	Database::Abstraction::init({
 		cache => CHI->new(driver => 'Memory', datastore => {}),

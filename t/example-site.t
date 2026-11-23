@@ -103,4 +103,26 @@ like(render('page=nosuch'), qr/^Status: 404 Not Found/m, 'an unknown page is 404
 	like(render('page=states'), qr{<td>NY</td><td>N\.Y\.</td><td>New York</td>}, 'a driver with its own <directory> loads from there');
 }
 
+# The 0.003 way of declaring a driver, <databases><database>, is not read any
+# more: say so, and keep serving.  A fresh copy of the site again.
+{
+	my $site3 = File::Spec->catdir(tempdir(CLEANUP => 1), 'example');
+	File::Copy::Recursive::dircopy(File::Spec->catdir($root, 'example'), $site3) or die "Cannot copy the example: $!";
+	$site = $site3;
+
+	my $conf = File::Spec->catfile($site, 'conf', 'default');
+	open(my $in, '<', $conf) or die "$conf: $!";
+	my $xml = do { local $/; <$in> };
+	close($in);
+	$xml =~ s{(</databases>)}{<database><name>states</name></database>$1} or die 'no <databases> in the configuration';
+	open(my $out, '>', $conf) or die "$conf: $!";
+	print $out $xml;
+	close($out);
+
+	my $output = render('page=index');
+	like($output, qr/^Status: 200 OK/m, 'the old <databases><database> does not stop the site');
+	like($output, qr/<databases><database> is no longer read: declare each driver as <data><driver>/, 'but it is reported');
+	like(render('page=states'), qr/<td>NY<\/td>/, 'the drivers <data> declares are still loaded');
+}
+
 done_testing();
