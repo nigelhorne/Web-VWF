@@ -1,6 +1,6 @@
 Revision history for Web-VWF
 
-0.004.0
+0.004.0	Mon Nov 23 01:51:09 PM EST 2026
 	[ Incompatible changes ]
 	- The data files and the drivers that read them are now configured apart:
 	<databases><directory> is where the data files (CSV, XML, SQLite) are

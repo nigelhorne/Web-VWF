@@ -483,6 +483,157 @@ own beside `cgi-bin/` is configured from the server's directory for it, and
     { type => 'object', isa => 'Web::VWF::Config' }
 ```
 
+### Sig\_Handler
+
+Internal: not part of the public interface, though it is a plain function, not a
+method.  The handler for TERM and USR1.  It sets the flag that makes `run` leave its loop and, if no
+request is being handled, flushes the response cache and statistics, detaches
+[Log::WarnDie](https://metacpan.org/pod/Log%3A%3AWarnDie) and exits at once.  Mid-request it only sets the flag, so the
+response in flight is sent whole.
+
+#### Api Specification
+
+##### Input
+
+```perl
+    { signal => { type => 'string' } }
+```
+
+##### Output
+
+```perl
+    { type => 'undef' }
+```
+
+### Choose
+
+Internal: a plain function.  Sends the `300 Multiple Choices` response: plain
+text that lists `?page=` and the description of each page the site serves, with
+a `Last-Modified` header from the page script.  The list is left out for
+`HEAD`.  It does nothing when the status of the request is already not 200,
+as for an unknown page, where the status line is sent elsewhere.
+
+#### Api Specification
+
+##### Input
+
+```
+    {}
+```
+
+##### Output
+
+```perl
+    { type => 'undef' }
+```
+
+### Send\_Error
+
+Internal: a plain function.  Sends a short plain-text error response, and
+records the status in the request's [CGI::Info](https://metacpan.org/pod/CGI%3A%3AInfo).  Takes a hash or a hashref:
+
+- `status`
+
+    The HTTP status code.  Required.
+
+- `body`
+
+    The text to send.  It is not sent for `HEAD`.
+
+- `headers`
+
+    Extra header lines, each ending in a newline, such as `Retry-After`.
+
+- `buffered`
+
+    True once [FCGI::Buffer](https://metacpan.org/pod/FCGI%3A%3ABuffer) is capturing the output: it sends the `Status` line
+    itself, so this does not.
+
+#### Api Specification
+
+##### Input
+
+```perl
+    {
+            status => { type => 'integer', min => 100, max => 599 },
+            body => { type => 'string', optional => 1 },
+            headers => { type => 'string', optional => 1 },
+            buffered => { type => 'boolean', optional => 1 },
+    }
+```
+
+##### Output
+
+```perl
+    { type => 'integer', value => 1 }
+```
+
+### Duration\_Seconds
+
+Internal: a plain function.  Converts a duration such as `60s`, `2 minutes` or
+`90` to whole seconds, with [Time::Duration::Parse](https://metacpan.org/pod/Time%3A%3ADuration%3A%3AParse).  A string of digits is
+already seconds.  One that cannot be parsed is logged as a warning, and
+counts as 60 seconds.
+
+#### Api Specification
+
+##### Input
+
+```perl
+    { duration => { type => 'string' } }
+```
+
+##### Output
+
+```perl
+    { type => 'integer', min => 0 }
+```
+
+### Blacklisted
+
+Internal: a plain function.  Takes the request's [CGI::Info](https://metacpan.org/pod/CGI%3A%3AInfo) and says whether
+the request looks like an SQL injection attempt.  The address that sent one is
+remembered by the worker, so its later requests are refused without scanning
+them again.  It is only a filter for noise, see [Web::VWF::Blacklist](https://metacpan.org/pod/Web%3A%3AVWF%3A%3ABlacklist).  A
+request of more than 8192 characters is not scanned.  There is nothing to check
+without `REMOTE_ADDR`.  When it returns true the status of the request has been
+set to 403.
+
+#### Api Specification
+
+##### Input
+
+```perl
+    { info => { type => 'object', isa => 'CGI::Info' } }
+```
+
+##### Output
+
+```perl
+    { type => 'boolean' }
+```
+
+### Filter
+
+Internal: a plain function, registered with [Log::WarnDie](https://metacpan.org/pod/Log%3A%3AWarnDie).  Called with a
+warning, returns false for the few harmless ones that are not worth logging
+(two missing optional modules under [Net::OAuth](https://metacpan.org/pod/Net%3A%3AOAuth) and [NetAddr::IP](https://metacpan.org/pod/NetAddr%3A%3AIP), and an
+`S_IFFIFO` message from Fcntl) and true for all the rest.
+
+#### Api Specification
+
+##### Input
+
+```perl
+    { message => { type => 'string' } }
+```
+
+##### Output
+
+```perl
+    { type => 'boolean' }
+```
+
 ## Author
 
 Nigel Horne, `<njh at nigelhorne.com>`
