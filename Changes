@@ -1,5 +1,9 @@
 Revision history for Web-VWF
 
+0.003.2
+	[ Bug Fixes ]
+	- Choose the right Perl in the example/cgi-bin/page.fcgi
+
 0.003.1	Thu Nov 19 08:14:20 PM EST 2026
 	[ Enhancements ]
 	- Web::VWF loads CGI::Alert, so an error that stops a page script is emailed
