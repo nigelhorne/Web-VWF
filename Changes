@@ -1,6 +1,6 @@
 Revision history for Web-VWF
 
-0.004.1
+0.004.1	Mon Nov 23 08:02:40 PM EST 2026
 	[ Bug Fixes ]
 	- A missing default databases directory is no longer an error: it is logged at notice
 	and no data driver is loaded; one the site names is still an error.
