@@ -19,9 +19,11 @@ my $lib = File::Spec->catdir($root, 'lib');
 # Pod::Coverage about every package at the end of the run, and that does
 # "require Web::VWF"; a module that was loaded by path has no entry in %INC under
 # that name, so the whole file was compiled a second time and every subroutine in
-# it reported as "redefined" in the coverage step of CI.
+# it reported as "redefined" in the coverage step of CI.  It is loaded at compile
+# time, with "use", because CGI::Alert has an INIT block and a run-time "require"
+# makes perl warn "Too late to run INIT block".
 BEGIN { unshift @INC, File::Spec->catdir($Bin, File::Spec->updir(), 'lib') }
-require Web::VWF;
+use Web::VWF;
 my $version = "$Web::VWF::VERSION";
 
 my @modules = glob("$lib/Web/VWF/*.pm $lib/Web/VWF/*/*.pm");
