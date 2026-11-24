@@ -6,7 +6,7 @@ use strict;
 use warnings;
 # use diagnostics;
 
-use version; our $VERSION = version->declare('0.004.0');
+use version; our $VERSION = version->declare('0.004.1');
 
 # TODO: Try Log::Any::Adapter::Abstraction instead of Log::Any
 
@@ -193,7 +193,7 @@ Web::VWF - Versatile Web Framework - easily build a website to support different
 
 =head1 VERSION
 
-Version 0.004.0
+Version 0.004.1
 
 =head1 SYNOPSIS
 
@@ -1852,6 +1852,15 @@ sub _page_descriptions
 #	<databases><directory>/path/to/files</directory></databases>
 # else the old <database_dir>, else ../databases beside the script.  Data drivers are
 # looked for here unless <data> says otherwise.
+sub _database_directory_is_set
+{
+	my (undef, $config) = @_;
+
+	my $databases = $config->{'databases'};
+	return 1 if(ref($databases) eq 'HASH' && defined(_resolve_directory($databases->{'directory'})));
+	return $config->{'database_dir'} ? 1 : 0;
+}
+
 sub _database_directory
 {
 	my (undef, $config) = @_;
@@ -1859,6 +1868,25 @@ sub _database_directory
 	my $databases = $config->{'databases'};
 	my $directory = (ref($databases) eq 'HASH') ? _resolve_directory($databases->{'directory'}) : undef;
 	return $directory // $config->{'database_dir'} || File::Spec->catdir($script_dir // File::Spec->curdir(), File::Spec->updir(), $DEFAULT_DATABASE_DIR);
+}
+
+# The database directory, and a message in the log about it: info when it is there,
+# notice when only the default is missing (a site may have no data files at all; the
+# drivers it declares itself are still tried and report their own failure), and an
+# error when the site named a directory that is not there, which is a mistake.
+sub _check_database_directory
+{
+	my ($self, $config, $logger) = @_;
+
+	my $directory = $self->_database_directory($config);
+	if(-d $directory) {
+		$logger->info('Reading databases from ', $directory);
+	} elsif($self->_database_directory_is_set($config)) {
+		$logger->error("The databases directory $directory does not exist");
+	} else {
+		$logger->notice("No databases directory $directory: assuming there are no data files");
+	}
+	return $directory;
 }
 
 # The data drivers (Database::Abstraction subclasses) the site declares, as a list of
@@ -1905,7 +1933,14 @@ sub _data_modules
 		} else {
 			@entries = map { +{ name => $_, description => '', directory => '' } } sort(map { basename($_, '.pm') } glob(File::Spec->catfile($default_dir, '*.pm')));
 			unless(@entries) {
-				# Nothing there: this distribution's own, from @INC
+				# Nothing declared and nothing in the directory.  The built-in
+				# driver reads files from the databases directory, so with no
+				# such directory the site has no data files and needs no driver
+				# (its own access log is read by vwf_log, which is separate).
+				# A directory the site named that is missing is a mistake, which
+				# the driver then reports.
+				return () unless(-d $default_dir || $self->_database_directory_is_set($config));
+				# This distribution's own, from @INC
 				return map { +{ name => lc((split(/::/, $_))[-1]), module => $_, description => '', file => undef } } @DEFAULT_DATA_MODULES;
 			}
 		}
@@ -1946,8 +1981,7 @@ sub _site_setup
 
 	# Where the site's own databases are.  Database::Abstraction reads them, and
 	# the pages are told the directory as databasedir and database_dir.
-	$database_dir = $self->_database_directory($config);
-	$logger->info('Reading databases from ', $database_dir);
+	$database_dir = $self->_check_database_directory($config, $logger);
 
 	# <databases><database> was how a site declared its drivers before 0.004.0.
 	# It is no longer read, so say so rather than leaving the pages without data.

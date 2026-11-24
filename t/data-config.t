@@ -31,7 +31,12 @@ sub summary
 	return [map { join(' ', $_->{'name'}, $_->{'module'}, ($_->{'soft'} ? undef : $_->{'file'}) // '-') } Web::VWF->_data_modules(shift)];
 }
 
-is_deeply(summary({}), ['index Web::VWF::Data::index -'], 'the default');
+# No databases directory means no data files, so no default driver
+is_deeply(summary({}), [], 'no databases directory: no drivers');
+is_deeply(summary({ databases => { directory => '/nonexistent/databases' } }), ['index Web::VWF::Data::index -'],
+	'a named databases directory that is missing: the driver is tried, and fails loudly');
+is_deeply(summary({ database_dir => '/nonexistent/databases' }), ['index Web::VWF::Data::index -'],
+	'so is a named database_dir');
 
 is_deeply(summary({ data => { driver => { name => 'states', description => 'S' } } }),
 	['states Web::VWF::Data::states -'], 'one database is a hash');
@@ -80,5 +85,40 @@ is_deeply([map { $_->{'name'} } Web::VWF->_data_modules({ data => { directory =>
 	['only'], 'listed drivers win over scanning');
 is_deeply(summary({ databases => { directory => tempdir(CLEANUP => 1) } }), ['index Web::VWF::Data::index -'],
 	'an empty databases directory means the default');
+
+# What is said in the log about the databases directory
+package Local::Logger {
+	sub new { return bless { messages => [] }, shift }
+	foreach my $level (qw(debug info notice warn error)) {
+		no strict 'refs';
+		*{$level} = sub { my $self = shift; push @{$self->{'messages'}}, [$level, join('', grep { defined } @_)]; return };
+	}
+}
+package main;
+
+sub logged
+{
+	my $config = shift;
+	my $logger = Local::Logger->new();
+	my $dir = Web::VWF->_check_database_directory($config, $logger);
+	return ($dir, @{$logger->{'messages'}});
+}
+
+my $present = tempdir(CLEANUP => 1);
+my ($returned, @said) = logged({ databases => { directory => $present } });
+is($returned, $present, 'the directory is returned');
+is_deeply(\@said, [['info', "Reading databases from $present"]], 'present: info');
+
+(undef, @said) = logged({ databases => { directory => '/nonexistent/databases' } });
+is_deeply(\@said, [['error', 'The databases directory /nonexistent/databases does not exist']],
+	'named but missing: error');
+
+(undef, @said) = logged({ database_dir => '/nonexistent/databases' });
+is_deeply([map { $_->[0] } @said], ['error'], 'the old database_dir, named but missing: error');
+
+(undef, @said) = logged({});
+is(scalar(@said), 1, 'default and missing: one message');
+is($said[0][0], 'notice', 'default and missing: notice, not an error');
+like($said[0][1], qr/\ANo databases directory .*assuming there are no data files\z/, 'and it says why');
 
 done_testing();
